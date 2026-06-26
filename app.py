@@ -39,6 +39,7 @@ HTML_LAYOUT = """
             --neon-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
         }
         
+        /* الثيمات الديناميكية المتغيرة تلقائياً */
         body.theme-tiktok { --primary: #00f2fe; --neon-shadow: 0 0 10px #00f2fe, 0 0 20px #fe0979; }
         body.theme-youtube { --primary: #ff0000; --neon-shadow: 0 0 10px #ff0000, 0 0 20px #cc0000; }
         body.theme-insta { --primary: #f56040; --neon-shadow: 0 0 10px #f56040, 0 0 20px #833ab4; }
@@ -54,16 +55,16 @@ HTML_LAYOUT = """
         .icon-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .icon-btn:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
         
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
         .main-content::-webkit-scrollbar { width: 5px; }
         .main-content::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
 
         .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(220, 39, 67, 0.3); transition: 0.3s; }
-        .creator-btn:hover { filter: brightness(1.1); }
+        .creator-btn:hover { transform: scale(0.98); }
 
         .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--primary); background: var(--card-bg); padding: 10px; border-radius: 15px; border: 1px solid var(--border); box-shadow: var(--neon-shadow); }
 
-        .input-card { background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; margin-bottom: 5px; transition: 0.3s; }
+        .input-card { background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; margin-bottom: 2px; transition: 0.3s; }
         .card-title { font-size: 14px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.05); border: 1px solid var(--border); border-radius: 12px; padding-right: 10px; }
         [data-theme="dark"] .input-row { background: rgba(255,255,255,0.05); }
@@ -74,8 +75,9 @@ HTML_LAYOUT = """
         .btn-main { padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
         .btn-main:hover { filter: brightness(1.1); }
 
-        .dynamic-result-container { display: none; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; margin-top: 10px; border: 1px solid var(--border); animation: slideDown 0.4s ease-out; }
-        [data-theme="dark"] .dynamic-result-container { background: rgba(255,255,255,0.03); }
+        /* حاويات النتائج المنزلقة تحت كل حقل */
+        .dynamic-result-container { display: none; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 15px; margin-top: 5px; border: 1px solid var(--border); animation: slideDown 0.4s ease-out; }
+        [data-theme="dark"] .dynamic-result-container { background: rgba(255,255,255,0.02); }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         .search-item { display: flex; gap: 15px; align-items: center; background: var(--card-bg); padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); }
@@ -88,7 +90,7 @@ HTML_LAYOUT = """
         .title { font-size: 14px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         .btn-action-row { display: flex; gap: 10px; }
-        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; }
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; text-align: center;}
         .btn-action:active { transform: scale(0.98); }
         .btn-icon-sq { background: #334155; width: 45px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; transition: 0.2s; border: none; font-size: 16px;}
         .btn-icon-sq:hover { background: #475569; }
@@ -130,9 +132,8 @@ HTML_LAYOUT = """
                 <i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> ملف بنجاح
             </div>
 
-            <!-- الحقل 1: مباشر -->
             <div class="input-card" id="card-url">
-                <div class="card-title"><i class="fas fa-link"></i> تحميل مباشر (تيك توك، اكس، انستا، الخ)</div>
+                <div class="card-title"><i class="fas fa-link"></i> تحميل مباشر (تيك توك، اكس، وغيرها)</div>
                 <div class="input-row">
                     <input type="text" id="urlInput" placeholder="الصق الرابط هنا...">
                     <i class="fas fa-times action-icon" onclick="clearInput('urlInput')"></i>
@@ -142,7 +143,6 @@ HTML_LAYOUT = """
                 <div class="dynamic-result-container" id="result-url"></div>
             </div>
 
-            <!-- الحقل 2: يوتيوب -->
             <div class="input-card" id="card-yt">
                 <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> بحث وتحميل من يوتيوب</div>
                 <div class="input-row">
@@ -153,11 +153,10 @@ HTML_LAYOUT = """
                 <div class="dynamic-result-container" id="result-yt"></div>
             </div>
 
-            <!-- الحقل 3: ستوريات انستا -->
             <div class="input-card" id="card-ig">
                 <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تحميل ستوري انستغرام</div>
                 <div class="input-row">
-                    <input type="text" id="igInput" placeholder="اكتب يوزر الحساب (مثال: _otnn)">
+                    <input type="text" id="igInput" placeholder="اكتب يوزر الحساب أو رابط الستوري...">
                     <i class="fas fa-times action-icon" onclick="clearInput('igInput')"></i>
                 </div>
                 <button class="btn-main" onclick="processRequest('story', 'igInput', 'card-ig')">جلب الستوري</button>
@@ -165,7 +164,6 @@ HTML_LAYOUT = """
             </div>
         </div>
 
-        <!-- باركود -->
         <div class="qr-modal" id="qrModal">
             <div class="qr-box">
                 <span>امسح الباركود للتحميل بهاتفك</span>
@@ -175,9 +173,8 @@ HTML_LAYOUT = """
         </div>
     </div>
 
-    <!-- القالب الديناميكي للنتائج -->
     <template id="resultTemplate">
-        <div class="loading"><i class="fas fa-spinner fa-spin"></i> تتم المعالجة لتخطي الحماية، يرجى الانتظار...</div>
+        <div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
         <div class="error-msg"></div>
         <div class="search-list" style="display:none; flex-direction:column; gap:10px;"></div>
         <div class="media-box" style="display:none; flex-direction:column; gap:15px;">
@@ -222,14 +219,13 @@ HTML_LAYOUT = """
         function showQR(url) {
             document.getElementById('qrModal').style.display = 'flex';
             document.getElementById('qrCodeDiv').innerHTML = '';
-            new QRCode(document.getElementById("qrCodeDiv"), { text: window.location.origin + url, width: 150, height: 150 });
+            new QRCode(document.getElementById("qrCodeDiv"), { text: url, width: 150, height: 150 });
         }
 
         function copyLink(url) {
             const temp = document.createElement("input");
-            temp.value = window.location.origin + url;
-            document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
-            alert("تم نسخ رابط التحميل التلقائي بنجاح!");
+            temp.value = url; document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
+            alert("تم نسخ الرابط بنجاح!");
         }
 
         function toggleGifEditor(containerId, duration) {
@@ -246,7 +242,7 @@ HTML_LAYOUT = """
                 
                 editor.querySelector('.gifStartBtn').onclick = function() {
                     const btn = this; const status = editor.querySelector('.gifStatus');
-                    btn.disabled = true; status.style.display = 'block'; status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإنشاء...';
+                    btn.disabled = true; status.style.display = 'block'; status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إنشاء الملف...';
                     const vals = sliderDiv.noUiSlider.get();
                     
                     gifshot.createGIF({
@@ -254,8 +250,8 @@ HTML_LAYOUT = """
                     }, function(obj) {
                         if(!obj.error) {
                             const a = document.createElement('a'); a.href = obj.image; a.download = activeTitle + '.gif'; a.click();
-                            status.innerHTML = '<i class="fas fa-check"></i> اكتمل!';
-                        } else { status.innerHTML = '<i class="fas fa-times"></i> فشل الإنشاء.'; }
+                            status.innerHTML = '<i class="fas fa-check"></i> اكتمل التحميل';
+                        } else { status.innerHTML = '<i class="fas fa-times"></i> فشلت العملية.'; }
                         setTimeout(()=> { status.style.display = 'none'; btn.disabled = false; }, 3000);
                     });
                 };
@@ -288,11 +284,11 @@ HTML_LAYOUT = """
                 if(data.error) {
                     errBox.innerHTML = data.error; errBox.style.display = 'block';
                 } else if(data.search_results) {
-                    applyPlatformTheme(type === 'youtube' ? 'youtube' : 'insta');
-                    let html = `<div style="font-weight:bold; color:var(--primary);"><i class="fas fa-list"></i> اختر المقطع:</div>`;
+                    applyPlatformTheme(type === 'youtube' ? 'youtube' : 'instagram');
+                    let html = `<div style="font-weight:bold; color:var(--primary); margin-bottom:5px;"><i class="fas fa-list"></i> نتائج البحث المتاحة:</div>`;
                     data.search_results.forEach(item => {
                         html += `
-                        <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processRequest('${type==='youtube'?'url':'url'}', '${inputId}', '${cardId}');">
+                        <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processRequest('url', '${inputId}', '${cardId}');">
                             <img src="${item.thumbnail}" class="search-thumb">
                             <div class="search-title">${item.title}</div>
                         </div>`;
@@ -301,10 +297,9 @@ HTML_LAYOUT = """
                 } else {
                     applyPlatformTheme(data.platform);
                     activeTitle = data.title || 'Tahmilati_Video';
-                    const safeTitle = encodeURIComponent(activeTitle);
                     
-                    // استخدام مسار البروكسي لإجبار المتصفح على التحميل التلقائي
-                    activeProxyUrl = `/proxy?url=${encodeURIComponent(data.video_url)}&title=${safeTitle}&ext=mp4`;
+                    // تشغيل مباشر عبر الـ IP الخاص بالمستحدم لمنع حظر خوادم رندر
+                    activeProxyUrl = data.video_url;
 
                     mediaBox.querySelector('.video-header').innerHTML = `<img src="${data.thumbnail}" class="thumb"><div class="title">${data.title}</div>`;
                     
@@ -312,24 +307,23 @@ HTML_LAYOUT = """
                     activePlayer = new Plyr(videoEl, { controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] });
                     activePlayer.source = { type: 'video', sources: [{ src: activeProxyUrl, type: 'video/mp4' }] };
 
-                    // روابط التحميل التلقائي المباشر (عن طريق البروكسي اللي يجبر التحميل)
-                    const dlVideo = `/proxy?url=${encodeURIComponent(data.video_url)}&title=${safeTitle}&ext=mp4`;
-                    const dlAudio = `/proxy?url=${encodeURIComponent(data.audio_url || data.video_url)}&title=${safeTitle}&ext=mp3`;
-                    const dlWa = `/proxy?url=${encodeURIComponent(data.whatsapp_url || data.video_url)}&title=${safeTitle}_WA&ext=mp4`;
+                    const dlVideo = data.video_url;
+                    const dlAudio = data.audio_url || data.video_url;
+                    const dlWa = data.whatsapp_url || data.video_url;
 
                     let actionsHtml = `
                         <div class="btn-action-row">
-                            <a href="${dlVideo}" class="btn-action bg-mp4"><i class="fas fa-download"></i> تحميل تلقائي (MP4)</a>
-                            <button onclick="copyLink('${dlVideo}')" class="btn-icon-sq" title="نسخ"><i class="fas fa-link"></i></button>
+                            <a href="${dlVideo}" download="${activeTitle}.mp4" target="_blank" class="btn-action bg-mp4"><i class="fas fa-download"></i> تحميل الفيديو</a>
+                            <button onclick="copyLink('${dlVideo}')" class="btn-icon-sq" title="نسخ الرابط"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlVideo}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
                         </div>
                         <div class="btn-action-row">
-                            <a href="${dlAudio}" class="btn-action bg-mp3"><i class="fas fa-music"></i> تحميل كصوت (MP3)</a>
+                            <a href="${dlAudio}" download="${activeTitle}.mp3" target="_blank" class="btn-action bg-mp3"><i class="fas fa-music"></i> تحميل كصوت</a>
                             <button onclick="copyLink('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-qrcode"></i></button>
                         </div>
                         <div class="btn-action-row">
-                            <a href="${dlWa}" class="btn-action bg-wa"><i class="fab fa-whatsapp"></i> نسخة مضغوطة للواتساب</a>
+                            <a href="${dlWa}" download="${activeTitle}_WhatsApp.mp4" target="_blank" class="btn-action bg-wa"><i class="fab fa-whatsapp"></i> نسخة مضغوطة للواتساب</a>
                             <button onclick="copyLink('${dlWa}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
                         </div>
                     `;
@@ -341,7 +335,7 @@ HTML_LAYOUT = """
                     mediaBox.querySelector('.download-grid').innerHTML = actionsHtml;
                     mediaBox.style.display = 'flex';
                 }
-            } catch (e) { loader.style.display = 'none'; errBox.innerHTML = "حدث خطأ في الاتصال بالسيرفر، يرجى المحاولة لاحقاً."; errBox.style.display = 'block'; }
+            } catch (e) { loader.style.display = 'none'; errBox.innerHTML = "حدث خطأ أثناء معالجة البيانات."; errBox.style.display = 'block'; }
         }
     </script>
 </body>
@@ -352,121 +346,114 @@ HTML_LAYOUT = """
 def home():
     return render_template_string(HTML_LAYOUT)
 
-# نظام استخراج البيانات الهجين (اقوى نظام لتخطي الحظر)
-def fallback_extract(url):
-    opts = {
-        'quiet': True, 
-        'nocheckcertificate': True,
-        'format': 'best',
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}} 
+# دالة الاستدعاء الذكي للـ APIs الخارجية المتعددة لتجاوز حظر يوتيوب وإنستا
+def call_cobalt_network(url, is_audio=False):
+    # قائمة بـ 3 سيرفرات كسر حماية عالمية مختلفة للتبديل الفوري بينها في حال توقف أحدها
+    api_nodes = [
+        "https://api.cobalt.tools/api/json",
+        "https://co.wuk.sh/api/json",
+        "https://cobalt.sh/api/json"
+    ]
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
-    try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            formats = info.get('formats', [])
-            v_formats = [f for f in formats if f.get('vcodec') != 'none']
-            a_formats = [f for f in formats if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
-            
-            best_v = v_formats[-1]['url'] if v_formats else info.get('url')
-            best_a = a_formats[-1]['url'] if a_formats else best_v
-            worst_v = v_formats[0]['url'] if v_formats else best_v # أقل دقة للواتساب
-            
-            return {"title": info.get('title', 'Media'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_a, "whatsapp_url": worst_v, "duration": info.get('duration', 60)}
-    except:
-        return None
+    payload = {"url": url, "vQuality": "720", "filenamePattern": "basic"}
+    if is_audio: payload["isAudioOnly"] = True
 
-def cobalt_extract(url, is_audio=False):
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
-    try:
-        r = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": is_audio}, headers=headers, timeout=10)
-        if r.status_code == 200:
-            return r.json().get("url")
-    except: pass
+    for node in api_nodes:
+        try:
+            # حماية صارمة بتوقيت 4 ثوانٍ لكل عقدة لمنع الـ 502 نهائياً
+            r = requests.post(node, json=payload, headers=headers, timeout=4)
+            if r.status_code == 200:
+                res_url = r.json().get("url")
+                if res_url: return res_url
+        except:
+            continue # إذا فشل السيرفر الحالي، يعبر فوراً للسيرفر الثاني
     return None
 
 @app.route('/api/process', methods=['POST'])
 def process_api():
     req_type = request.json.get('type')
     query = request.json.get('query', '').strip()
-    if not query: return jsonify({"error": "الرجاء إدخال بيانات صالحة."}), 400
+    if not query: return jsonify({"error": "الحقل فارغ."}), 400
 
+    # 1. معالجة البحث في يوتيوب (نصي فقط بدون تحميل)
     if req_type == 'youtube' and not query.startswith('http'):
         try:
-            opts = {'quiet': True, 'extract_flat': True}
+            opts = {'quiet': True, 'extract_flat': True, 'socket_timeout': 5}
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(f"ytsearch5:{query}", download=False)
-                results = [{"title": e.get('title'), "url": f"https://www.youtube.com/watch?v={e.get('id')}", "thumbnail": e.get('thumbnails', [{}])[-1].get('url', '')} for e in info.get('entries', [])]
-                return jsonify({"search_results": results})
-        except: return jsonify({"error": "البحث يواجه ضغطاً، حاول مجدداً."})
-
-    if req_type == 'story':
-        try:
-            user = query.replace('@', '').split('?')[0].split('/')[-1]
-            opts = {'quiet': True, 'extract_flat': True}
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(f"https://instagram.com/stories/{user}/", download=False)
-                results = [{"title": f"ستوري {user}", "url": e.get('url', f"https://instagram.com/stories/{user}/"), "thumbnail": e.get('thumbnail', '')} for e in info.get('entries', [info])]
+                results = [{
+                    "title": e.get('title'),
+                    "url": f"https://www.youtube.com/watch?v={e.get('id')}",
+                    "thumbnail": e.get('thumbnails', [{}])[-1].get('url', 'https://via.placeholder.com/90x60')
+                } for e in info.get('entries', [])]
                 if results: return jsonify({"search_results": results})
-        except: return jsonify({"error": "الحساب خاص أو يرجى لصق رابط ستوري مباشر بدلاً من اليوزر."})
+        except: pass
+        return jsonify({"error": "البحث يواجه ضغطاً حالياً، يرجى المحاولة لاحقاً."})
 
+    # 2. جلب ستوري انستغرام بالرابط المباشر أو اسم الحساب
+    if req_type == 'story':
+        if not query.startswith('http'):
+            user = query.replace('@', '').split('?')[0].split('/')[-1]
+            url = f"https://instagram.com/stories/{user}/"
+        else:
+            url = query
+        
+        # تمرير طلب الستوري فوراً لشبكة الـ API لتفادي حظر رندر
+        vid = call_cobalt_network(url, False)
+        if vid:
+            return jsonify({"title": f"ستوري انستغرام جاهز", "thumbnail": "https://via.placeholder.com/150", "video_url": vid, "audio_url": vid, "whatsapp_url": vid, "duration": 15, "platform": "story"})
+        return jsonify({"error": "الحساب خاص، أو لا توجد ستوريات نشطة حالياً."})
+
+    # 3. معالجة الروابط المباشرة (تيك توك، انستا، يوتيوب، اكس)
     url = query
     platform = "other"
     if 'tiktok.com' in url: platform = "tiktok"
     elif 'instagram.com' in url: platform = "instagram"
     elif 'youtu' in url: platform = "youtube"
 
+    # استخدام السيرفر الخفيف والسريع للتيك توك
     if platform == "tiktok":
         try:
-            resp = requests.get(f"https://www.tikwm.com/api/?url={url}", timeout=10).json()
+            resp = requests.get(f"https://www.tikwm.com/api/?url={url}", timeout=5).json()
             if resp.get('code') == 0:
                 v = resp['data']
-                return jsonify({"title": v.get('title', 'Tiktok Video'), "thumbnail": v.get('cover'), "video_url": v.get('play'), "audio_url": v.get('music'), "whatsapp_url": v.get('wmplay') or v.get('play'), "duration": v.get('duration', 15), "platform": platform})
+                return jsonify({
+                    "title": v.get('title', 'فيديو تيك توك'), "thumbnail": v.get('cover'),
+                    "video_url": v.get('play'), "audio_url": v.get('music'), 
+                    "whatsapp_url": v.get('wmplay') or v.get('play'),
+                    "duration": v.get('duration', 15), "platform": platform
+                })
         except: pass
 
-    # الخطة أ: محاولة السحب الهجين عبر yt-dlp (يضمن دقة الواتساب)
-    data = fallback_extract(url)
-    if data:
-        data["platform"] = platform
-        return jsonify(data)
-
-    # الخطة ب: محاولة كسر الحماية عبر Cobalt إذا فشلت الأولى
-    vid_url = cobalt_extract(url, False)
+    # الهروب من حظر رندر عبر شبكة السيرفرات الهجينة لليوتيوب والانستا
+    vid_url = call_cobalt_network(url, False)
     if vid_url:
-        aud_url = cobalt_extract(url, True)
-        return jsonify({"title": "تم التخطي بنجاح", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url or vid_url, "whatsapp_url": vid_url, "duration": 60, "platform": platform})
+        aud_url = call_cobalt_network(url, True) or vid_url
+        return jsonify({
+            "title": "تم معالجة الملف بنجاح",
+            "thumbnail": "https://via.placeholder.com/150",
+            "video_url": vid_url, "audio_url": aud_url, "whatsapp_url": vid_url,
+            "duration": 60, "platform": platform
+        })
 
-    return jsonify({"error": "سيرفرات المنصة (يوتيوب/انستا) تحظر السحب حالياً من هذا الرابط."})
-
-# دالة البروكسي لإجبار المتصفح على التحميل التلقائي (بدون فتح صفحة جديدة)
-@app.route('/proxy')
-def proxy_download():
-    file_url = request.args.get('url')
-    title = urllib.parse.unquote(request.args.get('title', 'Tahmilati'))
-    ext = request.args.get('ext', 'mp4')
-    if not file_url: return "مفقود", 400
-
-    safe_title = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_') or "Tahmilati"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    range_header = request.headers.get('Range', None)
-    if range_header: headers['Range'] = range_header
-
+    # خطة الطوارئ الأخيرة باستخدام الاحتياطي المحلي بحماية الروبوت المتقدمة
     try:
-        req = requests.get(file_url, headers=headers, stream=True, verify=False, timeout=15)
-        ctype = 'audio/mp3' if ext == 'mp3' else req.headers.get('content-type', 'video/mp4')
-        
-        resp = Response(stream_with_context(req.iter_content(chunk_size=1024*512)), status=req.status_code, content_type=ctype)
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Accept-Ranges'] = 'bytes'
-        
-        if 'Content-Range' in req.headers: resp.headers['Content-Range'] = req.headers['Content-Range']
-        if 'Content-Length' in req.headers: resp.headers['Content-Length'] = req.headers['Content-Length']
-        
-        # الإجبار على التحميل (Auto-Download)
-        if not range_header: 
-            resp.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.{ext}"'
-            
-        return resp
-    except: return "فشل", 500
+        opts = {
+            'quiet': True, 'nocheckcertificate': True, 'socket_timeout': 5,
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}}
+        }
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            v_formats = [f for f in formats if f.get('vcodec') != 'none']
+            best_v = v_formats[-1]['url'] if v_formats else info.get('url')
+            return jsonify({"title": info.get('title', 'مقطع فيديو'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_v, "whatsapp_url": best_v, "duration": info.get('duration', 45), "platform": platform})
+    except:
+        return jsonify({"error": "عذراً، الرابط محمي جداً أو خوادم المنصة ترفض الاستجابة حالياً."})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
