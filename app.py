@@ -17,7 +17,6 @@ HTML_LAYOUT = """
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- مكتبات المتصفح: Plyr، gifshot، noUiSlider، و QRCode -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" />
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -40,7 +39,6 @@ HTML_LAYOUT = """
             --neon-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
         }
         
-        /* الثيمات الديناميكية */
         body.theme-tiktok { --primary: #00f2fe; --neon-shadow: 0 0 10px #00f2fe, 0 0 20px #fe0979; }
         body.theme-youtube { --primary: #ff0000; --neon-shadow: 0 0 10px #ff0000, 0 0 20px #cc0000; }
         body.theme-insta { --primary: #f56040; --neon-shadow: 0 0 10px #f56040, 0 0 20px #833ab4; }
@@ -76,7 +74,6 @@ HTML_LAYOUT = """
         .btn-main { padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
         .btn-main:hover { filter: brightness(1.1); }
 
-        /* منطقة النتائج الديناميكية المنزلقة */
         .dynamic-result-container { display: none; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; margin-top: 10px; border: 1px solid var(--border); animation: slideDown 0.4s ease-out; }
         [data-theme="dark"] .dynamic-result-container { background: rgba(255,255,255,0.03); }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -104,7 +101,6 @@ HTML_LAYOUT = """
         .noUi-connect { background: var(--primary); }
         .noUi-handle { border-radius: 50%; box-shadow: var(--neon-shadow); }
 
-        /* نافذة الباركود الطايرة */
         .qr-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 0 30px rgba(255,255,255,0.2); }
         .qr-box span { color: #000; font-weight: bold; font-size: 14px; text-align: center; }
@@ -134,9 +130,8 @@ HTML_LAYOUT = """
                 <i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> ملف بنجاح
             </div>
 
-            <!-- الحقل 1: الرابط المباشر -->
             <div class="input-card" id="card-url">
-                <div class="card-title"><i class="fas fa-link"></i> تحميل مباشر (تيك توك، اكس، وغيرها)</div>
+                <div class="card-title"><i class="fas fa-link"></i> تحميل مباشر (تيك توك، اكس، انستا، الخ)</div>
                 <div class="input-row">
                     <input type="text" id="urlInput" placeholder="الصق الرابط هنا...">
                     <i class="fas fa-times action-icon" onclick="clearInput('urlInput')"></i>
@@ -146,7 +141,6 @@ HTML_LAYOUT = """
                 <div class="dynamic-result-container" id="result-url"></div>
             </div>
 
-            <!-- الحقل 2: يوتيوب -->
             <div class="input-card" id="card-yt">
                 <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> بحث وتحميل من يوتيوب</div>
                 <div class="input-row">
@@ -157,7 +151,6 @@ HTML_LAYOUT = """
                 <div class="dynamic-result-container" id="result-yt"></div>
             </div>
 
-            <!-- الحقل 3: ستوري انستغرام -->
             <div class="input-card" id="card-ig">
                 <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تحميل ستوري انستغرام</div>
                 <div class="input-row">
@@ -169,7 +162,6 @@ HTML_LAYOUT = """
             </div>
         </div>
 
-        <!-- نافذة الباركود -->
         <div class="qr-modal" id="qrModal">
             <div class="qr-box">
                 <span>امسح الباركود للتحميل بهاتفك</span>
@@ -179,9 +171,8 @@ HTML_LAYOUT = """
         </div>
     </div>
 
-    <!-- الهيكل الخفي للمشغل والنتائج (ينتقل برمجياً للحقل المناسب) -->
     <template id="resultTemplate">
-        <div class="loading"><i class="fas fa-spinner fa-spin"></i> تتم المعالجة، يرجى الانتظار...</div>
+        <div class="loading"><i class="fas fa-spinner fa-spin"></i> تتم المعالجة لتخطي الحماية، يرجى الانتظار...</div>
         <div class="error-msg"></div>
         <div class="search-list" style="display:none; flex-direction:column; gap:10px;"></div>
         <div class="media-box" style="display:none; flex-direction:column; gap:15px;">
@@ -205,7 +196,6 @@ HTML_LAYOUT = """
         setInterval(() => { count += Math.floor(Math.random() * 3); document.getElementById('countNum').innerText = count.toLocaleString(); }, 3500);
 
         let activePlayer = null;
-        let activeGifSlider = null;
         let activeProxyUrl = '';
         let activeTitle = '';
 
@@ -227,12 +217,12 @@ HTML_LAYOUT = """
         function showQR(url) {
             document.getElementById('qrModal').style.display = 'flex';
             document.getElementById('qrCodeDiv').innerHTML = '';
-            new QRCode(document.getElementById("qrCodeDiv"), { text: window.location.origin + url, width: 150, height: 150 });
+            new QRCode(document.getElementById("qrCodeDiv"), { text: (url.startsWith('http') ? url : window.location.origin + url), width: 150, height: 150 });
         }
 
         function copyLink(url) {
             const temp = document.createElement("input");
-            temp.value = window.location.origin + url;
+            temp.value = url.startsWith('http') ? url : window.location.origin + url;
             document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
             alert("تم نسخ الرابط بنجاح!");
         }
@@ -271,7 +261,6 @@ HTML_LAYOUT = """
             const val = document.getElementById(inputId).value.trim();
             if(!val) return;
 
-            // غلق أي نتائج سابقة ونقل الهيكل للحقل الحالي
             document.querySelectorAll('.dynamic-result-container').forEach(el => { el.style.display = 'none'; el.innerHTML = ''; });
             const resultContainer = document.getElementById(`result-${cardId.split('-')[1]}`);
             const tmpl = document.getElementById('resultTemplate').content.cloneNode(true);
@@ -308,7 +297,8 @@ HTML_LAYOUT = """
                     applyPlatformTheme(data.platform);
                     activeTitle = data.title || 'Tahmilati_Video';
                     const safeTitle = encodeURIComponent(activeTitle);
-                    activeProxyUrl = `/proxy?url=${encodeURIComponent(data.video_url)}&title=${safeTitle}&ext=mp4`;
+                    
+                    activeProxyUrl = data.video_url;
 
                     mediaBox.querySelector('.video-header').innerHTML = `<img src="${data.thumbnail}" class="thumb"><div class="title">${data.title}</div>`;
                     
@@ -316,24 +306,19 @@ HTML_LAYOUT = """
                     activePlayer = new Plyr(videoEl, { controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] });
                     activePlayer.source = { type: 'video', sources: [{ src: activeProxyUrl, type: 'video/mp4' }] };
 
-                    const dlVideo = activeProxyUrl;
-                    const dlAudio = `/proxy?url=${encodeURIComponent(data.audio_url || data.video_url)}&title=${safeTitle}&ext=mp3`;
-                    const dlWa = `/proxy?url=${encodeURIComponent(data.whatsapp_url || data.video_url)}&title=${safeTitle}_WA&ext=mp4`;
+                    const dlVideo = data.video_url;
+                    const dlAudio = data.audio_url || data.video_url;
 
                     let actionsHtml = `
                         <div class="btn-action-row">
-                            <a href="${dlVideo}" class="btn-action bg-mp4"><i class="fas fa-video"></i> تحميل (MP4)</a>
+                            <a href="${dlVideo}" target="_blank" class="btn-action bg-mp4"><i class="fas fa-video"></i> تحميل المقطع</a>
                             <button onclick="copyLink('${dlVideo}')" class="btn-icon-sq" title="نسخ"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlVideo}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
                         </div>
                         <div class="btn-action-row">
-                            <a href="${dlAudio}" class="btn-action bg-mp3"><i class="fas fa-music"></i> تحميل (MP3)</a>
+                            <a href="${dlAudio}" target="_blank" class="btn-action bg-mp3"><i class="fas fa-music"></i> تحميل كصوت</a>
                             <button onclick="copyLink('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-qrcode"></i></button>
-                        </div>
-                        <div class="btn-action-row">
-                            <a href="${dlWa}" class="btn-action bg-wa"><i class="fab fa-whatsapp"></i> للواتساب</a>
-                            <button onclick="copyLink('${dlWa}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
                         </div>
                     `;
 
@@ -344,7 +329,7 @@ HTML_LAYOUT = """
                     mediaBox.querySelector('.download-grid').innerHTML = actionsHtml;
                     mediaBox.style.display = 'flex';
                 }
-            } catch (e) { loader.style.display = 'none'; errBox.innerHTML = "حدث خطأ في الاتصال بالخادم الرئيسي."; errBox.style.display = 'block'; }
+            } catch (e) { loader.style.display = 'none'; errBox.innerHTML = "حدث خطأ في الاتصال بالسيرفر، يرجى المحاولة لاحقاً."; errBox.style.display = 'block'; }
         }
     </script>
 </body>
@@ -355,15 +340,32 @@ HTML_LAYOUT = """
 def home():
     return render_template_string(HTML_LAYOUT)
 
+def fetch_cobalt_api(url, is_audio=False):
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+    payload = {"url": url, "vQuality": "720"}
+    if is_audio: payload["isAudioOnly"] = True
+    
+    try:
+        r = requests.post("https://api.cobalt.tools/api/json", json=payload, headers=headers, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("status") in ["stream", "redirect"]:
+                return data.get("url")
+    except: pass
+    return None
+
 @app.route('/api/process', methods=['POST'])
 def process_api():
     req_type = request.json.get('type')
     query = request.json.get('query', '').strip()
     if not query: return jsonify({"error": "الرجاء إدخال بيانات صالحة."}), 400
 
-    opts = {'quiet': True, 'nocheckcertificate': True, 'no_warnings': True, 'socket_timeout': 15}
+    opts = {'quiet': True, 'nocheckcertificate': True}
 
-    # 1. بحث يوتيوب السريع
     if req_type == 'youtube' and not query.startswith('http'):
         try:
             opts['extract_flat'] = True
@@ -371,83 +373,50 @@ def process_api():
                 info = ydl.extract_info(f"ytsearch5:{query}", download=False)
                 results = [{"title": e.get('title'), "url": f"https://www.youtube.com/watch?v={e.get('id')}", "thumbnail": e.get('thumbnails', [{}])[-1].get('url', '')} for e in info.get('entries', [])]
                 return jsonify({"search_results": results})
-        except: return jsonify({"error": "الخدمة تواجه ضغطاً حالياً، حاول مجدداً."})
+        except: return jsonify({"error": "البحث في يوتيوب يواجه ضغطاً، حاول مجدداً."})
 
-    # 2. ستوريات انستغرام (تخطي ذكي)
     if req_type == 'story':
-        user = query.replace('@', '').split('?')[0].split('/')[-1]
-        try:
-            opts['extract_flat'] = True
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(f"https://instagram.com/stories/{user}/", download=False)
-                results = [{"title": f"ستوري {user}", "url": e.get('url', f"https://instagram.com/stories/{user}/"), "thumbnail": e.get('thumbnail', '')} for e in info.get('entries', [info])]
-                if results: return jsonify({"search_results": results})
-        except: return jsonify({"error": "الحساب خاص، أو لا توجد ستوريات خلال 24 ساعة."})
+        return jsonify({"error": "تحميل ستوريات انستغرام مغلق حالياً من قبل سيرفرات ميتا (تحتاج تسجيل دخول). استخدم رابط بوست او ريلز بدلاً من ذلك."})
 
-    # 3. معالجة الروابط (تيك توك، انستا، يوتيوب)
     url = query
     platform = "other"
     if 'tiktok.com' in url: platform = "tiktok"
     elif 'instagram.com' in url: platform = "instagram"
     elif 'youtu' in url: platform = "youtube"
 
-    # استخدام API تيك توك لتخفيف الضغط
     if platform == "tiktok":
         try:
             resp = requests.get(f"https://www.tikwm.com/api/?url={url}", timeout=10).json()
             if resp.get('code') == 0:
                 v = resp['data']
-                return jsonify({"title": v.get('title', 'Tiktok Video'), "thumbnail": v.get('cover'), "video_url": v.get('play'), "audio_url": v.get('music'), "whatsapp_url": v.get('wmplay') or v.get('play'), "duration": v.get('duration', 15), "platform": platform})
+                return jsonify({"title": v.get('title', 'Tiktok Video'), "thumbnail": v.get('cover'), "video_url": v.get('play'), "audio_url": v.get('music'), "duration": v.get('duration', 15), "platform": platform})
         except: pass
 
-    # الاستخراج العام مع تجاوز حماية يوتيوب
-    try:
-        opts['extract_flat'] = False
-        opts['format'] = 'best'
-        # خدعة تجاوز يوتيوب للاجهزة المحمولة
-        opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}} 
+    if platform in ["youtube", "instagram", "other"]:
+        vid_url = fetch_cobalt_api(url, False)
+        aud_url = fetch_cobalt_api(url, True)
         
+        if vid_url:
+            return jsonify({
+                "title": "تم جلب المقطع بنجاح",
+                "thumbnail": "https://via.placeholder.com/150", 
+                "video_url": vid_url, 
+                "audio_url": aud_url or vid_url, 
+                "duration": 60, 
+                "platform": platform
+            })
+            
+    try:
+        opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}} 
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
             formats = info.get('formats', [])
             v_formats = [f for f in formats if f.get('vcodec') != 'none']
-            a_formats = [f for f in formats if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
-            
             best_v = v_formats[-1]['url'] if v_formats else info.get('url')
-            best_a = a_formats[-1]['url'] if a_formats else best_v
-            worst_v = v_formats[0]['url'] if v_formats else best_v 
-
-            return jsonify({"title": info.get('title', 'Media'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_a, "whatsapp_url": worst_v, "duration": info.get('duration', 60), "platform": platform})
-    except Exception as e: return jsonify({"error": "عذراً، المقطع محمي أو الحساب خاص."})
-
-# دعم التقديم والتأخير (Range Requests)
-@app.route('/proxy')
-def proxy_download():
-    file_url = request.args.get('url')
-    title = urllib.parse.unquote(request.args.get('title', 'Tahmilati'))
-    ext = request.args.get('ext', 'mp4')
-    if not file_url: return "مفقود", 400
-
-    safe_title = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_') or "Tahmilati"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    
-    range_header = request.headers.get('Range', None)
-    if range_header: headers['Range'] = range_header
-
-    try:
-        req = requests.get(file_url, headers=headers, stream=True, verify=False, timeout=15)
-        ctype = 'audio/mp3' if ext == 'mp3' else req.headers.get('content-type', 'video/mp4')
-        
-        resp = Response(stream_with_context(req.iter_content(chunk_size=1024*512)), status=req.status_code, content_type=ctype)
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Accept-Ranges'] = 'bytes'
-        
-        if 'Content-Range' in req.headers: resp.headers['Content-Range'] = req.headers['Content-Range']
-        if 'Content-Length' in req.headers: resp.headers['Content-Length'] = req.headers['Content-Length']
-        
-        if not range_header: resp.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.{ext}"'
-        return resp
-    except: return "فشل", 500
+            return jsonify({"title": info.get('title', 'Media'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_v, "duration": info.get('duration', 60), "platform": platform})
+    except: 
+        return jsonify({"error": "سيرفرات يوتيوب/انستا تحظر السحب حالياً من هذا الرابط المجاني."})
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
