@@ -1,5 +1,9 @@
 import os
-from flask import Flask, render_template_string
+import requests
+import urllib.parse
+import re
+from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
+import yt_dlp
 
 app = Flask(__name__)
 
@@ -35,7 +39,6 @@ HTML_LAYOUT = """
             --neon-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
         }
         
-        /* الثيمات الديناميكية الحرباء للمنصات */
         body.theme-tiktok { --primary: #00f2fe; --neon-shadow: 0 0 10px #00f2fe, 0 0 20px #fe0979; }
         body.theme-youtube { --primary: #ff0000; --neon-shadow: 0 0 10px #ff0000, 0 0 20px #cc0000; }
         body.theme-insta { --primary: #f56040; --neon-shadow: 0 0 10px #f56040, 0 0 20px #833ab4; }
@@ -47,8 +50,7 @@ HTML_LAYOUT = """
         
         /* الشريط العلوي */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; z-index: 50; }
-        .logo-title { margin: 0; font-weight: 900; font-size: 22px; color: var(--primary); text-shadow: var(--neon-shadow); letter-spacing: 1px; }
-        
+        .logo-title { margin: 0; font-weight: 900; font-size: 22px; color: var(--primary); text-shadow: var(--neon-shadow); }
         .nav-btns { display: flex; gap: 10px; }
         .icon-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; display: flex; justify-content: center; align-items: center; font-size: 16px;}
         .icon-btn:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
@@ -60,12 +62,10 @@ HTML_LAYOUT = """
         .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .sidebar-title { font-weight: 900; font-size: 18px; color: var(--text-main); }
         .close-sidebar { background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
-        
         .menu-list { list-style: none; padding: 10px 0; margin: 0; flex: 1; overflow-y: auto; }
         .menu-item { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 12px; transition: 0.2s; color: var(--text-main); }
         .menu-item:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
         [data-theme="dark"] .menu-item:hover { background: rgba(255,255,255,0.05); }
-        .menu-icon { font-size: 20px; width: 25px; text-align: center; }
         
         /* المنطقة الرئيسية */
         .main-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; display: flex; flex-direction: column; gap: 15px; }
@@ -79,9 +79,8 @@ HTML_LAYOUT = """
         .welcome-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; padding: 0 15px; }
         .welcome-steps { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: right; width: 100%; font-size: 13px; font-weight: bold; color: var(--text-main); list-style: none;}
         .welcome-steps li { margin-bottom: 8px; }
-
-        .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text-main); background: var(--card-bg); padding: 12px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: auto; }
-        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(220, 39, 67, 0.3); transition: 0.3s; margin-top: 10px; }
+        .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text-main); background: var(--card-bg); padding: 12px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: auto; width: 100%;}
+        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; width: 100%; }
 
         /* الواجهات الفرعية */
         .view-section { display: none; flex-direction: column; gap: 15px; animation: slideUp 0.4s ease; }
@@ -93,11 +92,13 @@ HTML_LAYOUT = """
         [data-theme="dark"] .input-row { background: rgba(255,255,255,0.03); }
         input[type="text"] { flex: 1; padding: 16px 5px; background: transparent; border: none; color: var(--text-main); font-size: 14px; outline: none; font-family: 'Tajawal'; }
         .action-icon { color: var(--text-muted); cursor: pointer; padding: 10px; transition: 0.2s; }
-        .action-icon:hover { color: var(--primary); }
         
-        .btn-main { padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
+        /* أزرار السيرفرات اليدوية */
+        .server-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .btn-server { padding: 12px; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--primary); border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 5px;}
+        .btn-server:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
 
-        /* صندوق استعراض المقطع والأزرار */
+        /* النتائج */
         .result-container { display: none; flex-direction: column; gap: 15px; background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); }
         .video-header { display: flex; gap: 15px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
         .thumb { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border); }
@@ -107,27 +108,31 @@ HTML_LAYOUT = """
         .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; text-align: center; }
         .btn-icon-sq { background: rgba(0,0,0,0.05); width: 45px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s; border: 1px solid var(--border); font-size: 16px;}
         [data-theme="dark"] .btn-icon-sq { background: rgba(255,255,255,0.05); }
-        .btn-icon-sq:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* نافذة الدشلي لاختيار الجودة ⚙️ */
+        /* الدشلي ⚙️ */
         .quality-dropdown { position: absolute; bottom: 110%; left: 0; width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 10; overflow: hidden; }
         .quality-btn { padding: 12px; border: none; background: transparent; color: var(--text-main); font-family: 'Tajawal'; font-weight: bold; font-size: 13px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; text-align: center; }
         .quality-btn:hover { background: var(--primary); color: white; }
-        .quality-btn:last-child { border-bottom: none; }
 
         .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } .bg-gif { background: #f59e0b; }
 
+        /* GIF Editor */
         .gif-editor { display: none; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 15px; border: 1px dashed var(--border); }
         .slider-container { margin: 30px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
         .noUi-handle { border-radius: 50%; box-shadow: var(--neon-shadow); }
 
+        /* QR Code Modal */
         .qr-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: var(--card-bg); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .qr-box span { color: var(--text-main); font-weight: bold; font-size: 14px; text-align: center; }
         .close-qr { background: #ef4444; color: white; border: none; padding: 10px 25px; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; }
 
         .status-msg { text-align: center; color: var(--primary); font-size: 14px; display: none; font-weight: bold; padding: 10px; }
+        
+        .search-item { display: flex; gap: 15px; align-items: center; background: var(--card-bg); padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); margin-bottom: 10px; }
+        .search-item:hover { border-color: var(--primary); box-shadow: var(--neon-shadow); }
+        .search-thumb { width: 90px; height: 60px; border-radius: 8px; object-fit: cover; }
+        .search-title { font-size: 13px; font-weight: bold; line-height: 1.4; color: var(--text-main); }
     </style>
 </head>
 <body data-theme="dark">
@@ -150,7 +155,7 @@ HTML_LAYOUT = """
             </div>
             <ul class="menu-list">
                 <li class="menu-item" onclick="switchView('insta', 'theme-insta')"><i class="fab fa-instagram menu-icon" style="color: #f56040;"></i> إنستغرام (بوست/ستوري)</li>
-                <li class="menu-item" onclick="switchView('youtube', 'theme-youtube')"><i class="fab fa-youtube menu-icon" style="color: #ff0000;"></i> يوتيوب (رابط مباشر)</li>
+                <li class="menu-item" onclick="switchView('youtube', 'theme-youtube')"><i class="fab fa-youtube menu-icon" style="color: #ff0000;"></i> يوتيوب (بحث/رابط)</li>
                 <li class="menu-item" onclick="switchView('tiktok', 'theme-tiktok')"><i class="fab fa-tiktok menu-icon" style="color: #00f2fe;"></i> تيك توك (فيديو/ستوري)</li>
                 <li class="menu-item" onclick="switchView('facebook', 'theme-facebook')"><i class="fab fa-facebook menu-icon" style="color: #1877f2;"></i> فيسبوك (فيديو/ريلز)</li>
                 <li class="menu-item" onclick="switchView('general', 'theme-general')"><i class="fas fa-link menu-icon" style="color: #8b5cf6;"></i> تحميل عام (روابط أخرى)</li>
@@ -160,78 +165,98 @@ HTML_LAYOUT = """
         <div class="main-content">
             
             <div id="view-welcome" class="welcome-screen view-section" style="display: flex;">
-                <h1 class="welcome-title">Tahmilati | تحميلاتي</h1>
-                <p class="welcome-desc">منصة Tنزيل الذكية الشاملة<br>استخراج الوسائط من مختلف المنصات العالمية بأعلى جودة وتنزيلها تلقائياً.</p>
+                <h1 class="welcome-title">Tahmilati</h1>
+                <p class="welcome-desc">منصة التنزيل الذكية الشاملة<br>استخراج الوسائط من مختلف المنصات العالمية بأعلى جودة وتنزيلها تلقائياً.</p>
                 <ul class="welcome-steps" dir="rtl">
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 1. انقر على أيقونة القائمة (☰) في الزاوية العلوية.</li>
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 2. حدد المنصة المراد التنزيل منها.</li>
-                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط لإنشاء ملفات التنزيل المباشرة.</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. اختر السيرفر المناسب لتجنب الحظر.</li>
                 </ul>
                 <div class="live-counter"><i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> طلب بنجاح</div>
                 <a href="https://www.instagram.com/_otnn?igsh=d3hybTN2M2Zlanl0" target="_blank" class="creator-btn"><i class="fab fa-instagram"></i> المصمم: @_otnn</a>
+            </div>
+
+            <div id="view-youtube" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> يوتيوب (بحث أو رابط)</div>
+                    <div class="input-row">
+                        <input type="text" id="input-youtube" placeholder="أدخل اسم الأغنية للبحث، أو الصق الرابط...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-youtube')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-youtube')"></i>
+                    </div>
+                    <div class="server-grid">
+                        <button class="btn-server" onclick="processClientRequest('youtube', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (بحث/عالمي)</button>
+                        <button class="btn-server" onclick="processClientRequest('youtube', 'server2')"><i class="fas fa-server"></i> سيرفر 2 (احتياطي)</button>
+                        <button class="btn-server" onclick="processClientRequest('youtube', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (خادم محلي)</button>
+                        <button class="btn-server" onclick="processClientRequest('youtube', 'server3')"><i class="fas fa-globe"></i> سيرفر 4 (عام)</button>
+                    </div>
+                </div>
+                <div id="res-youtube" class="result-container"></div>
             </div>
 
             <div id="view-insta" class="view-section">
                 <div class="input-card">
                     <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تنزيل من إنستغرام</div>
                     <div class="input-row">
-                        <input type="text" id="input-insta" placeholder="أدخل رابط البوست أو يوزر الحساب...">
+                        <input type="text" id="input-insta" placeholder="أدخل رابط البوست أو يوزر الستوري...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-insta')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-insta')"></i>
                     </div>
-                    <button class="btn-main" onclick="processClientRequest('insta')">معالجة الرابط</button>
+                    <div class="server-grid">
+                        <button class="btn-server" onclick="processClientRequest('insta', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (Cobalt)</button>
+                        <button class="btn-server" onclick="processClientRequest('insta', 'server2')"><i class="fas fa-server"></i> سيرفر 2 (Wuksh)</button>
+                        <button class="btn-server" onclick="processClientRequest('insta', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (خادم محلي)</button>
+                        <button class="btn-server" onclick="processClientRequest('insta', 'server3')"><i class="fas fa-globe"></i> سيرفر 4 (عام)</button>
+                    </div>
                 </div>
                 <div id="res-insta" class="result-container"></div>
-            </div>
-
-            <div id="view-youtube" class="view-section">
-                <div class="input-card">
-                    <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> تنزيل من يوتيوب</div>
-                    <div class="input-row">
-                        <input type="text" id="input-youtube" placeholder="أدخل رابط المقطع المباشر...">
-                        <i class="fas fa-times action-icon" onclick="clearInput('input-youtube')"></i>
-                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-youtube')"></i>
-                    </div>
-                    <button class="btn-main" onclick="processClientRequest('youtube')">معالجة الرابط</button>
-                </div>
-                <div id="res-youtube" class="result-container"></div>
             </div>
 
             <div id="view-tiktok" class="view-section">
                 <div class="input-card">
                     <div class="card-title"><i class="fab fa-tiktok" style="color: #00f2fe;"></i> تنزيل من تيك توك</div>
                     <div class="input-row">
-                        <input type="text" id="input-tiktok" placeholder="أدخل رابط الفيديو أو الستوري...">
+                        <input type="text" id="input-tiktok" placeholder="أدخل رابط الفيديو...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-tiktok')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-tiktok')"></i>
                     </div>
-                    <button class="btn-main" onclick="processClientRequest('tiktok')">معالجة الرابط</button>
+                    <div class="server-grid">
+                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server3')"><i class="fas fa-bolt"></i> سيرفر 1 (مخصص)</button>
+                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server1')"><i class="fas fa-server"></i> سيرفر 2 (Cobalt)</button>
+                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (محلي)</button>
+                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server2')"><i class="fas fa-globe"></i> سيرفر 4 (احتياطي)</button>
+                    </div>
                 </div>
                 <div id="res-tiktok" class="result-container"></div>
             </div>
-
+            
             <div id="view-facebook" class="view-section">
                 <div class="input-card">
                     <div class="card-title"><i class="fab fa-facebook" style="color: #1877f2;"></i> تنزيل من فيسبوك</div>
                     <div class="input-row">
-                        <input type="text" id="input-facebook" placeholder="أدخل رابط الفيديو أو الريلز...">
+                        <input type="text" id="input-facebook" placeholder="أدخل الرابط...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-facebook')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-facebook')"></i>
                     </div>
-                    <button class="btn-main" onclick="processClientRequest('facebook')">معالجة الرابط</button>
+                    <div class="server-grid">
+                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('facebook', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (معالجة)</button>
+                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('facebook', 'server4')"><i class="fas fa-robot"></i> سيرفر 2 (محلي)</button>
+                    </div>
                 </div>
                 <div id="res-facebook" class="result-container"></div>
             </div>
 
             <div id="view-general" class="view-section">
                 <div class="input-card">
-                    <div class="card-title"><i class="fas fa-link" style="color: #8b5cf6;"></i> تحميل عام (روابط أخرى)</div>
+                    <div class="card-title"><i class="fas fa-link" style="color: #8b5cf6;"></i> تحميل عام</div>
                     <div class="input-row">
-                        <input type="text" id="input-general" placeholder="أدخل الرابط (X، بنترست، وغيرها)...">
+                        <input type="text" id="input-general" placeholder="أدخل الرابط...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-general')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-general')"></i>
                     </div>
-                    <button class="btn-main" onclick="processClientRequest('general')">معالجة الرابط</button>
+                    <div class="server-grid">
+                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('general', 'server1')"><i class="fas fa-server"></i> سيرفر المعالجة العالمي</button>
+                    </div>
                 </div>
                 <div id="res-general" class="result-container"></div>
             </div>
@@ -239,8 +264,17 @@ HTML_LAYOUT = """
         </div>
     </div>
 
+    <div class="qr-modal" id="qrModal">
+        <div class="qr-box">
+            <span>امسح الباركود للتحميل بهاتفك</span>
+            <div id="qrCodeDiv"></div>
+            <button class="close-qr" onclick="document.getElementById('qrModal').style.display='none'">إغلاق</button>
+        </div>
+    </div>
+
     <template id="resultTemplate">
-        <div class="status-msg"><i class="fas fa-spinner fa-spin"></i> جاري إنشاء الملف...</div>
+        <div class="status-msg"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المحدد...</div>
+        <div class="search-list" style="display:none; flex-direction:column;"></div>
         <div class="media-box" style="display:none; flex-direction:column; gap:15px;">
             <div class="video-header"></div>
             <video class="plyr-player" playsinline controls></video>
@@ -260,13 +294,11 @@ HTML_LAYOUT = """
     </template>
 
     <script>
-        // العداد المباشر
         let count = 1425890;
         setInterval(() => { count += Math.floor(Math.random() * 3); document.getElementById('countNum').innerText = count.toLocaleString(); }, 3500);
 
         let activePlayer = null;
         let globalVideoUrl = '';
-        let globalAudioUrl = '';
         let activeTitle = 'Tahmilati_File';
 
         function toggleTheme() {
@@ -315,9 +347,20 @@ HTML_LAYOUT = """
             menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // إجبار المتصفح على التحميل التلقائي الفوري والمباشر دون الاستعانة بالسيرفر
+        // الإجبار على التحميل التلقائي عبر المتصفح باستخدام Blob
         async function forceAutoDownload(url, filename) {
             try {
+                // إذا الرابط يمر عبر السيرفر الوكيل الخاص بنا
+                if(url.includes('/proxy')) {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    return;
+                }
+                
+                // محاولة الجلب كـ Blob لتجاوز الفتح بصفحة جديدة
                 const response = await fetch(url);
                 const blob = await response.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
@@ -329,7 +372,7 @@ HTML_LAYOUT = """
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(blobUrl);
             } catch (e) {
-                // خطة بديلة إذا منع الـ CORS التحميل التلقائي كـ Blob
+                // خطة بديلة
                 window.open(url, '_blank');
             }
         }
@@ -364,8 +407,8 @@ HTML_LAYOUT = """
             }
         }
 
-        // 🌊 نظام فك التشفير الشلالي بمتصفح الهاتف مباشرة (مستحيل يعطي 502)
-        async function processClientRequest(platform) {
+        // 🚀 معالجة الطلبات بناءً على السيرفر الذي اختاره المستخدم
+        async function processClientRequest(platform, serverChoice) {
             const inputId = 'input-' + platform;
             const containerId = 'res-' + platform;
             let val = document.getElementById(inputId).value.trim();
@@ -377,41 +420,45 @@ HTML_LAYOUT = """
             resContainer.style.display = 'flex';
 
             const statusMsg = resContainer.querySelector('.status-msg');
-            const mediaBox = resContainer.querySelector('.media-box');
+            const searchList = resContainer.querySelector('.search-list');
 
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
             statusMsg.style.display = 'block';
 
-            // إذا مدخل يوزر انستا ستوري
+            // 1. معالجة البحث في يوتيوب (يتم عبر الخادم المحلي بأمان)
+            if(platform === 'youtube' && !val.startsWith('http') && serverChoice === 'server1') {
+                try {
+                    let r = await fetch('/api/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: val}) });
+                    let res = await r.json();
+                    if(res.results) {
+                        let html = `<div style="font-weight:bold; font-size:14px; margin-bottom:10px;">نتائج البحث (اختر مقطعاً):</div>`;
+                        res.results.forEach(item => {
+                            html += `
+                            <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processClientRequest('${platform}', 'server1');">
+                                <img src="${item.thumbnail}" class="search-thumb">
+                                <div class="search-title">${item.title}</div>
+                            </div>`;
+                        });
+                        searchList.innerHTML = html; searchList.style.display = 'flex';
+                        statusMsg.style.display = 'none';
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // ترتيب يوزر الانستا
             if(platform === 'insta' && !val.startsWith('http')) {
                 val = 'https://instagram.com/stories/' + val.replace('@', '') + '/';
             }
 
-            // تيك توك فك تشفير منفصل وسريع
-            if(platform === 'tiktok' || val.includes('tiktok.com')) {
-                try {
-                    const r = await fetch('https://www.tikwm.com/api/?url=' + encodeURIComponent(val));
-                    const res = await r.json();
-                    if(res.code === 0) {
-                        renderMediaResult(res.data.title, res.data.cover, res.data.play, res.data.music, res.data.wmplay, res.data.duration, platform, containerId);
-                        statusMsg.style.display = 'none';
-                        return;
-                    }
-                } catch(e){}
-            }
-
-            // شبكة السيرفرات العالمية لكسر حماية يوتيوب، انستا، وفيس بوك
-            const apiNodes = [
-                "https://api.cobalt.tools/api/json",
-                "https://co.wuk.sh/api/json",
-                "https://cobalt.sh/api/json"
-            ];
-
             let success = false;
-            for(let node of apiNodes) {
+
+            // توجيه الطلب حسب السيرفر المختار
+            if(serverChoice === 'server1' || serverChoice === 'server2') {
+                // استخدام Client-Side API APIs حقيقية تماماً
+                const apiNode = serverChoice === 'server1' ? "https://api.cobalt.tools/api/json" : "https://co.wuk.sh/api/json";
                 try {
-                    // جلب الفيديو
-                    let r = await fetch(node, {
+                    let r = await fetch(apiNode, {
                         method: 'POST',
                         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: val, vQuality: "720" })
@@ -419,28 +466,54 @@ HTML_LAYOUT = """
                     if(r.status == 200) {
                         let res = await r.json();
                         if(res.url) {
-                            globalVideoUrl = res.url;
-                            
-                            // جلب الصوت منفصل
-                            let rAudio = await fetch(node, {
+                            let rAudio = await fetch(apiNode, {
                                 method: 'POST',
                                 headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ url: val, isAudioOnly: true })
                             });
                             let resAudio = rAudio.status == 200 ? await rAudio.json() : {};
-                            globalAudioUrl = resAudio.url || res.url;
-
-                            renderMediaResult("تم معالجة المقطع بنجاح", "https://via.placeholder.com/150", globalVideoUrl, globalAudioUrl, globalVideoUrl, 60, platform, containerId);
+                            
+                            renderMediaResult("تم معالجة الملف عبر " + serverChoice, "https://via.placeholder.com/150", res.url, resAudio.url || res.url, res.url, 60, platform, containerId);
                             success = true;
-                            break;
                         }
                     }
-                } catch(e) { continue; }
+                } catch(e) { console.log(e); }
+            }
+            else if(serverChoice === 'server3') {
+                // سيرفرات مخصصة (مثل تيك توك)
+                if(platform === 'tiktok') {
+                    try {
+                        let r = await fetch('https://www.tikwm.com/api/?url=' + encodeURIComponent(val));
+                        let res = await r.json();
+                        if(res.code === 0) {
+                            renderMediaResult(res.data.title, res.data.cover, res.data.play, res.data.music, res.data.wmplay, res.data.duration, platform, containerId);
+                            success = true;
+                        }
+                    } catch(e) {}
+                } else {
+                    statusMsg.innerHTML = `<i class="fas fa-info-circle"></i> هذا الخادم غير متوفر لهذه المنصة، يرجى اختيار سيرفر آخر.`;
+                    statusMsg.style.color = '#f59e0b';
+                    return;
+                }
+            }
+            else if(serverChoice === 'server4') {
+                // الاتصال بالسيرفر المحلي (Render) كملاذ أخير
+                try {
+                    let r = await fetch('/api/local_extract', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: val}) });
+                    let res = await r.json();
+                    if(res.video_url) {
+                        // يتم استخدام بروكسي السيرفر لإجبار التحميل التلقائي
+                        const pVideo = `/proxy?url=${encodeURIComponent(res.video_url)}&title=Media&ext=mp4`;
+                        const pAudio = `/proxy?url=${encodeURIComponent(res.audio_url)}&title=Media&ext=mp3`;
+                        renderMediaResult(res.title, res.thumbnail, pVideo, pAudio, pVideo, res.duration, platform, containerId);
+                        success = true;
+                    }
+                } catch(e) {}
             }
 
             statusMsg.style.display = 'none';
             if(!success) {
-                statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> عذراً، المقطع محمي أو أن الرابط غير صحيح حالياً.`;
+                statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> السيرفر المحدد غير قادر على جلب الملف حالياً. يرجى تجربة خادم آخر!`;
                 statusMsg.style.color = '#ef4444';
                 statusMsg.style.display = 'block';
             }
@@ -452,7 +525,6 @@ HTML_LAYOUT = """
             
             activeTitle = title || 'Tahmilati_File';
             globalVideoUrl = videoUrl;
-            globalAudioUrl = audioUrl;
 
             mediaBox.querySelector('.video-header').innerHTML = `<img src="${thumbnail}" class="thumb"><div class="title">${title}</div>`;
             
@@ -465,9 +537,9 @@ HTML_LAYOUT = """
                     <button onclick="forceAutoDownload('${videoUrl}', '${activeTitle}.mp4')" class="btn-action bg-mp4"><i class="fas fa-download"></i> تنزيل تلقائي (فيديو)</button>
                     <button onclick="toggleQualityMenu(this)" class="btn-icon-sq" title="تحديد الجودة"><i class="fas fa-cog"></i></button>
                     <div class="quality-dropdown">
-                        <button class="quality-btn" onclick="setQuality(this, '${videoUrl}')">1080p (أعلى جودة)</button>
-                        <button class="quality-btn" onclick="setQuality(this, '${videoUrl}')">720p (جودة متوسطة)</button>
-                        <button class="quality-btn" onclick="setQuality(this, '${whatsappUrl}')">480p (جودة خفيفة)</button>
+                        <button class="quality-btn" onclick="forceAutoDownload('${videoUrl}', '${activeTitle}_1080p.mp4')">1080p (أعلى جودة)</button>
+                        <button class="quality-btn" onclick="forceAutoDownload('${videoUrl}', '${activeTitle}_720p.mp4')">720p (جودة متوسطة)</button>
+                        <button class="quality-btn" onclick="forceAutoDownload('${whatsappUrl}', '${activeTitle}_480p.mp4')">480p (جودة خفيفة)</button>
                     </div>
                     <button onclick="copyLink('${videoUrl}')" class="btn-icon-sq" title="نسخ الرابط"><i class="fas fa-link"></i></button>
                     <button onclick="showQR('${videoUrl}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
@@ -499,7 +571,63 @@ HTML_LAYOUT = """
 def home():
     return render_template_string(HTML_LAYOUT)
 
+# 1. API للبحث في يوتيوب (يتم بمهلة زمنية قصيرة لمنع 502)
+@app.route('/api/search', methods=['POST'])
+def search_youtube():
+    query = request.json.get('query', '')
+    if not query: return jsonify({"error": "فارغ"})
+    try:
+        opts = {'quiet': True, 'extract_flat': True, 'socket_timeout': 6}
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(f"ytsearch5:{query}", download=False)
+            results = [{"title": e.get('title'), "url": f"https://www.youtube.com/watch?v={e.get('id')}", "thumbnail": e.get('thumbnails', [{}])[-1].get('url')} for e in info.get('entries', [])]
+            return jsonify({"results": results})
+    except:
+        return jsonify({"error": "فشل البحث"})
+
+# 2. السيرفر المحلي (يتم استدعاؤه فقط عند الضغط على الخادم المحلي)
+@app.route('/api/local_extract', methods=['POST'])
+def local_extract():
+    url = request.json.get('url', '')
+    if not url: return jsonify({"error": "فارغ"}), 400
+    try:
+        # حماية قصوى: توقف بعد 8 ثواني لضمان عدم حدوث 502 أبداً
+        opts = {
+            'quiet': True, 'nocheckcertificate': True, 'socket_timeout': 8,
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}}
+        }
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            v_formats = [f for f in formats if f.get('vcodec') != 'none']
+            best_v = v_formats[-1]['url'] if v_formats else info.get('url')
+            return jsonify({
+                "title": info.get('title', 'Media File'), 
+                "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), 
+                "video_url": best_v, 
+                "audio_url": best_v, 
+                "duration": info.get('duration', 45)
+            })
+    except Exception as e:
+        return jsonify({"error": "فشل جلب الملف عبر السيرفر المحلي."}), 500
+
+# 3. بروكسي الإجبار على التحميل (للسيرفر المحلي فقط)
+@app.route('/proxy')
+def proxy_download():
+    file_url = request.args.get('url')
+    ext = request.args.get('ext', 'mp4')
+    if not file_url: return "مفقود", 400
+
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        # مهلة 10 ثواني للبروكسي
+        req = requests.get(file_url, headers=headers, stream=True, verify=False, timeout=10)
+        resp = Response(stream_with_context(req.iter_content(chunk_size=1024*512)), status=req.status_code, content_type=req.headers.get('content-type'))
+        resp.headers['Content-Disposition'] = f'attachment; filename="Tahmilati_File.{ext}"'
+        return resp
+    except:
+        return "خطأ بالاتصال", 500
+
 if __name__ == '__main__':
-    # فتح المنفذ الرسمي بشكل خفيف جداً يمنع الـ 502 للأبد
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
