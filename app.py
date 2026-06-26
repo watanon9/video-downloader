@@ -3,7 +3,6 @@ import requests
 import urllib.parse
 import re
 from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
-import yt_dlp
 
 app = Flask(__name__)
 
@@ -48,14 +47,12 @@ HTML_LAYOUT = """
         html, body { height: 100dvh; margin: 0; padding: 0; overflow: hidden; font-family: 'Tajawal', sans-serif; background-color: var(--bg-color); color: var(--text-main); transition: 0.4s ease; }
         .app-container { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; position: relative; overflow: hidden; }
         
-        /* الشريط العلوي */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; z-index: 50; }
         .logo-title { margin: 0; font-weight: 900; font-size: 22px; color: var(--primary); text-shadow: var(--neon-shadow); }
         .nav-btns { display: flex; gap: 10px; }
         .icon-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; display: flex; justify-content: center; align-items: center; font-size: 16px;}
         .icon-btn:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
 
-        /* القائمة الجانبية ☰ */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99; display: none; opacity: 0; transition: 0.3s; backdrop-filter: blur(3px); }
         .sidebar { position: fixed; top: 0; right: -300px; width: 280px; height: 100%; background: var(--card-bg); z-index: 100; box-shadow: -5px 0 20px rgba(0,0,0,0.2); transition: right 0.3s ease; display: flex; flex-direction: column; }
         .sidebar.open { right: 0; }
@@ -67,12 +64,10 @@ HTML_LAYOUT = """
         .menu-item:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
         [data-theme="dark"] .menu-item:hover { background: rgba(255,255,255,0.05); }
         
-        /* المنطقة الرئيسية */
         .main-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; display: flex; flex-direction: column; gap: 15px; }
         .main-content::-webkit-scrollbar { width: 5px; }
         .main-content::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
 
-        /* الشاشة الترحيبية */
         .welcome-screen { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 20px; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .welcome-title { font-size: 26px; font-weight: 900; color: var(--primary); margin: 0; text-shadow: var(--neon-shadow); }
@@ -80,9 +75,9 @@ HTML_LAYOUT = """
         .welcome-steps { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: right; width: 100%; font-size: 13px; font-weight: bold; color: var(--text-main); list-style: none;}
         .welcome-steps li { margin-bottom: 8px; }
         .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text-main); background: var(--card-bg); padding: 12px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: auto; width: 100%;}
-        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; width: 100%; }
+        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; width: 100%; transition: 0.3s; }
+        .creator-btn:hover { filter: brightness(1.1); }
 
-        /* الواجهات الفرعية */
         .view-section { display: none; flex-direction: column; gap: 15px; animation: slideUp 0.4s ease; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -92,13 +87,10 @@ HTML_LAYOUT = """
         [data-theme="dark"] .input-row { background: rgba(255,255,255,0.03); }
         input[type="text"] { flex: 1; padding: 16px 5px; background: transparent; border: none; color: var(--text-main); font-size: 14px; outline: none; font-family: 'Tajawal'; }
         .action-icon { color: var(--text-muted); cursor: pointer; padding: 10px; transition: 0.2s; }
+        .action-icon:hover { color: var(--primary); }
         
-        /* أزرار السيرفرات اليدوية */
-        .server-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .btn-server { padding: 12px; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--primary); border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 5px;}
-        .btn-server:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
+        .btn-main { padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
 
-        /* النتائج */
         .result-container { display: none; flex-direction: column; gap: 15px; background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); }
         .video-header { display: flex; gap: 15px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
         .thumb { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border); }
@@ -108,31 +100,25 @@ HTML_LAYOUT = """
         .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; text-align: center; }
         .btn-icon-sq { background: rgba(0,0,0,0.05); width: 45px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s; border: 1px solid var(--border); font-size: 16px;}
         [data-theme="dark"] .btn-icon-sq { background: rgba(255,255,255,0.05); }
+        .btn-icon-sq:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* الدشلي ⚙️ */
         .quality-dropdown { position: absolute; bottom: 110%; left: 0; width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 10; overflow: hidden; }
         .quality-btn { padding: 12px; border: none; background: transparent; color: var(--text-main); font-family: 'Tajawal'; font-weight: bold; font-size: 13px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; text-align: center; }
         .quality-btn:hover { background: var(--primary); color: white; }
+        .quality-btn:last-child { border-bottom: none; }
 
-        .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } .bg-gif { background: #f59e0b; }
+        .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } .bg-gif { background: #f59e0b; } .bg-ss { background: #ef4444; }
 
-        /* GIF Editor */
         .gif-editor { display: none; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 15px; border: 1px dashed var(--border); }
         .slider-container { margin: 30px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
         .noUi-handle { border-radius: 50%; box-shadow: var(--neon-shadow); }
 
-        /* QR Code Modal */
         .qr-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: var(--card-bg); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .close-qr { background: #ef4444; color: white; border: none; padding: 10px 25px; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; }
 
         .status-msg { text-align: center; color: var(--primary); font-size: 14px; display: none; font-weight: bold; padding: 10px; }
-        
-        .search-item { display: flex; gap: 15px; align-items: center; background: var(--card-bg); padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); margin-bottom: 10px; }
-        .search-item:hover { border-color: var(--primary); box-shadow: var(--neon-shadow); }
-        .search-thumb { width: 90px; height: 60px; border-radius: 8px; object-fit: cover; }
-        .search-title { font-size: 13px; font-weight: bold; line-height: 1.4; color: var(--text-main); }
     </style>
 </head>
 <body data-theme="dark">
@@ -170,7 +156,7 @@ HTML_LAYOUT = """
                 <ul class="welcome-steps" dir="rtl">
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 1. انقر على أيقونة القائمة (☰) في الزاوية العلوية.</li>
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 2. حدد المنصة المراد التنزيل منها.</li>
-                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. اختر السيرفر المناسب لتجنب الحظر.</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط لإنشاء ملفات التنزيل المباشرة.</li>
                 </ul>
                 <div class="live-counter"><i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> طلب بنجاح</div>
                 <a href="https://www.instagram.com/_otnn?igsh=d3hybTN2M2Zlanl0" target="_blank" class="creator-btn"><i class="fab fa-instagram"></i> المصمم: @_otnn</a>
@@ -178,18 +164,13 @@ HTML_LAYOUT = """
 
             <div id="view-youtube" class="view-section">
                 <div class="input-card">
-                    <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> يوتيوب (بحث أو رابط)</div>
+                    <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> يوتيوب (رابط مباشر)</div>
                     <div class="input-row">
-                        <input type="text" id="input-youtube" placeholder="أدخل اسم الأغنية للبحث، أو الصق الرابط...">
+                        <input type="text" id="input-youtube" placeholder="الصق الرابط هنا...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-youtube')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-youtube')"></i>
                     </div>
-                    <div class="server-grid">
-                        <button class="btn-server" onclick="processClientRequest('youtube', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (بحث/عالمي)</button>
-                        <button class="btn-server" onclick="processClientRequest('youtube', 'server2')"><i class="fas fa-server"></i> سيرفر 2 (احتياطي)</button>
-                        <button class="btn-server" onclick="processClientRequest('youtube', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (خادم محلي)</button>
-                        <button class="btn-server" onclick="processClientRequest('youtube', 'server3')"><i class="fas fa-globe"></i> سيرفر 4 (عام)</button>
-                    </div>
+                    <button class="btn-main" onclick="processClientRequest('youtube')">معالجة الرابط</button>
                 </div>
                 <div id="res-youtube" class="result-container"></div>
             </div>
@@ -202,12 +183,7 @@ HTML_LAYOUT = """
                         <i class="fas fa-times action-icon" onclick="clearInput('input-insta')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-insta')"></i>
                     </div>
-                    <div class="server-grid">
-                        <button class="btn-server" onclick="processClientRequest('insta', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (Cobalt)</button>
-                        <button class="btn-server" onclick="processClientRequest('insta', 'server2')"><i class="fas fa-server"></i> سيرفر 2 (Wuksh)</button>
-                        <button class="btn-server" onclick="processClientRequest('insta', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (خادم محلي)</button>
-                        <button class="btn-server" onclick="processClientRequest('insta', 'server3')"><i class="fas fa-globe"></i> سيرفر 4 (عام)</button>
-                    </div>
+                    <button class="btn-main" onclick="processClientRequest('insta')">معالجة الرابط</button>
                 </div>
                 <div id="res-insta" class="result-container"></div>
             </div>
@@ -220,12 +196,7 @@ HTML_LAYOUT = """
                         <i class="fas fa-times action-icon" onclick="clearInput('input-tiktok')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-tiktok')"></i>
                     </div>
-                    <div class="server-grid">
-                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server3')"><i class="fas fa-bolt"></i> سيرفر 1 (مخصص)</button>
-                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server1')"><i class="fas fa-server"></i> سيرفر 2 (Cobalt)</button>
-                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server4')"><i class="fas fa-robot"></i> سيرفر 3 (محلي)</button>
-                        <button class="btn-server" onclick="processClientRequest('tiktok', 'server2')"><i class="fas fa-globe"></i> سيرفر 4 (احتياطي)</button>
-                    </div>
+                    <button class="btn-main" onclick="processClientRequest('tiktok')">معالجة الرابط</button>
                 </div>
                 <div id="res-tiktok" class="result-container"></div>
             </div>
@@ -238,10 +209,7 @@ HTML_LAYOUT = """
                         <i class="fas fa-times action-icon" onclick="clearInput('input-facebook')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-facebook')"></i>
                     </div>
-                    <div class="server-grid">
-                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('facebook', 'server1')"><i class="fas fa-server"></i> سيرفر 1 (معالجة)</button>
-                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('facebook', 'server4')"><i class="fas fa-robot"></i> سيرفر 2 (محلي)</button>
-                    </div>
+                    <button class="btn-main" onclick="processClientRequest('facebook')">معالجة الرابط</button>
                 </div>
                 <div id="res-facebook" class="result-container"></div>
             </div>
@@ -254,9 +222,7 @@ HTML_LAYOUT = """
                         <i class="fas fa-times action-icon" onclick="clearInput('input-general')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-general')"></i>
                     </div>
-                    <div class="server-grid">
-                        <button class="btn-server" style="grid-column: span 2;" onclick="processClientRequest('general', 'server1')"><i class="fas fa-server"></i> سيرفر المعالجة العالمي</button>
-                    </div>
+                    <button class="btn-main" onclick="processClientRequest('general')">معالجة الرابط</button>
                 </div>
                 <div id="res-general" class="result-container"></div>
             </div>
@@ -273,8 +239,7 @@ HTML_LAYOUT = """
     </div>
 
     <template id="resultTemplate">
-        <div class="status-msg"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المحدد...</div>
-        <div class="search-list" style="display:none; flex-direction:column;"></div>
+        <div class="status-msg"><i class="fas fa-spinner fa-spin"></i> جاري استخراج الروابط المباشرة...</div>
         <div class="media-box" style="display:none; flex-direction:column; gap:15px;">
             <div class="video-header"></div>
             <video class="plyr-player" playsinline controls></video>
@@ -300,6 +265,7 @@ HTML_LAYOUT = """
         let activePlayer = null;
         let globalVideoUrl = '';
         let activeTitle = 'Tahmilati_File';
+        let ytFallbackId = ''; // لزر الطوارئ ss
 
         function toggleTheme() {
             const body = document.body;
@@ -347,32 +313,19 @@ HTML_LAYOUT = """
             menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // الإجبار على التحميل التلقائي عبر المتصفح باستخدام Blob
         async function forceAutoDownload(url, filename) {
             try {
-                // إذا الرابط يمر عبر السيرفر الوكيل الخاص بنا
                 if(url.includes('/proxy')) {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    return;
+                    const a = document.createElement('a'); a.href = url; document.body.appendChild(a); a.click(); document.body.removeChild(a); return;
                 }
-                
-                // محاولة الجلب كـ Blob لتجاوز الفتح بصفحة جديدة
                 const response = await fetch(url);
                 const blob = await response.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                a.href = blobUrl; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
                 window.URL.revokeObjectURL(blobUrl);
             } catch (e) {
-                // خطة بديلة
                 window.open(url, '_blank');
             }
         }
@@ -407,8 +360,15 @@ HTML_LAYOUT = """
             }
         }
 
-        // 🚀 معالجة الطلبات بناءً على السيرفر الذي اختاره المستخدم
-        async function processClientRequest(platform, serverChoice) {
+        // استخراج ID يوتيوب
+        function getYoutubeId(url) {
+            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const match = url.match(regExp);
+            return (match && match[1].length === 11) ? match[1] : null;
+        }
+
+        // 🚀 معالجة الطلبات بدون اختيار سيرفر يدوي
+        async function processClientRequest(platform) {
             const inputId = 'input-' + platform;
             const containerId = 'res-' + platform;
             let val = document.getElementById(inputId).value.trim();
@@ -420,102 +380,93 @@ HTML_LAYOUT = """
             resContainer.style.display = 'flex';
 
             const statusMsg = resContainer.querySelector('.status-msg');
-            const searchList = resContainer.querySelector('.search-list');
-
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
             statusMsg.style.display = 'block';
-
-            // 1. معالجة البحث في يوتيوب (يتم عبر الخادم المحلي بأمان)
-            if(platform === 'youtube' && !val.startsWith('http') && serverChoice === 'server1') {
-                try {
-                    let r = await fetch('/api/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: val}) });
-                    let res = await r.json();
-                    if(res.results) {
-                        let html = `<div style="font-weight:bold; font-size:14px; margin-bottom:10px;">نتائج البحث (اختر مقطعاً):</div>`;
-                        res.results.forEach(item => {
-                            html += `
-                            <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processClientRequest('${platform}', 'server1');">
-                                <img src="${item.thumbnail}" class="search-thumb">
-                                <div class="search-title">${item.title}</div>
-                            </div>`;
-                        });
-                        searchList.innerHTML = html; searchList.style.display = 'flex';
-                        statusMsg.style.display = 'none';
-                        return;
-                    }
-                } catch(e) {}
-            }
-
-            // ترتيب يوزر الانستا
-            if(platform === 'insta' && !val.startsWith('http')) {
-                val = 'https://instagram.com/stories/' + val.replace('@', '') + '/';
-            }
+            ytFallbackId = ''; 
 
             let success = false;
 
-            // توجيه الطلب حسب السيرفر المختار
-            if(serverChoice === 'server1' || serverChoice === 'server2') {
-                // استخدام Client-Side API APIs حقيقية تماماً
-                const apiNode = serverChoice === 'server1' ? "https://api.cobalt.tools/api/json" : "https://co.wuk.sh/api/json";
-                try {
-                    let r = await fetch(apiNode, {
-                        method: 'POST',
-                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: val, vQuality: "720" })
-                    });
-                    if(r.status == 200) {
-                        let res = await r.json();
-                        if(res.url) {
-                            let rAudio = await fetch(apiNode, {
-                                method: 'POST',
-                                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ url: val, isAudioOnly: true })
-                            });
-                            let resAudio = rAudio.status == 200 ? await rAudio.json() : {};
-                            
-                            renderMediaResult("تم معالجة الملف عبر " + serverChoice, "https://via.placeholder.com/150", res.url, resAudio.url || res.url, res.url, 60, platform, containerId);
-                            success = true;
-                        }
+            // 1. يوتيوب (استخدام Piped API المخفي)
+            if(platform === 'youtube') {
+                const yId = getYoutubeId(val);
+                if(yId) {
+                    ytFallbackId = yId; // لزر الطوارئ ss
+                    const pipedNodes = ['https://pipedapi.kavin.rocks', 'https://api.piped.projectsegfau.lt', 'https://pipedapi.tokhmi.xyz'];
+                    for(let node of pipedNodes) {
+                        try {
+                            let r = await fetch(`${node}/streams/${yId}`);
+                            if(r.ok) {
+                                let data = await r.json();
+                                let vStreams = data.videoStreams.filter(v => !v.videoOnly).sort((a,b) => b.quality.localeCompare(a.quality));
+                                let vUrl = vStreams.length > 0 ? vStreams[0].url : (data.videoStreams[0] ? data.videoStreams[0].url : '');
+                                let aUrl = data.audioStreams.length > 0 ? data.audioStreams[0].url : vUrl;
+                                
+                                if(vUrl) {
+                                    // تمرير عبر بروكسي السيرفر الخفيف لضمان التحميل التلقائي
+                                    const pVideo = `/proxy?url=${encodeURIComponent(vUrl)}&title=YouTube_Video&ext=mp4`;
+                                    const pAudio = `/proxy?url=${encodeURIComponent(aUrl)}&title=YouTube_Audio&ext=mp3`;
+                                    renderMediaResult(data.title || "يوتيوب مقطع", "https://via.placeholder.com/150", pVideo, pAudio, pVideo, 60, platform, containerId);
+                                    success = true;
+                                    break;
+                                }
+                            }
+                        } catch(e) {}
                     }
-                } catch(e) { console.log(e); }
-            }
-            else if(serverChoice === 'server3') {
-                // سيرفرات مخصصة (مثل تيك توك)
-                if(platform === 'tiktok') {
-                    try {
-                        let r = await fetch('https://www.tikwm.com/api/?url=' + encodeURIComponent(val));
-                        let res = await r.json();
-                        if(res.code === 0) {
-                            renderMediaResult(res.data.title, res.data.cover, res.data.play, res.data.music, res.data.wmplay, res.data.duration, platform, containerId);
-                            success = true;
-                        }
-                    } catch(e) {}
-                } else {
-                    statusMsg.innerHTML = `<i class="fas fa-info-circle"></i> هذا الخادم غير متوفر لهذه المنصة، يرجى اختيار سيرفر آخر.`;
-                    statusMsg.style.color = '#f59e0b';
-                    return;
                 }
             }
-            else if(serverChoice === 'server4') {
-                // الاتصال بالسيرفر المحلي (Render) كملاذ أخير
+            // 2. تيك توك (سيرفر متخصص قوي جداً)
+            else if(platform === 'tiktok' || val.includes('tiktok.com')) {
                 try {
-                    let r = await fetch('/api/local_extract', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: val}) });
+                    let r = await fetch('https://www.tikwm.com/api/?url=' + encodeURIComponent(val));
                     let res = await r.json();
-                    if(res.video_url) {
-                        // يتم استخدام بروكسي السيرفر لإجبار التحميل التلقائي
-                        const pVideo = `/proxy?url=${encodeURIComponent(res.video_url)}&title=Media&ext=mp4`;
-                        const pAudio = `/proxy?url=${encodeURIComponent(res.audio_url)}&title=Media&ext=mp3`;
-                        renderMediaResult(res.title, res.thumbnail, pVideo, pAudio, pVideo, res.duration, platform, containerId);
+                    if(res.code === 0) {
+                        renderMediaResult(res.data.title, res.data.cover, res.data.play, res.data.music, res.data.wmplay, res.data.duration, platform, containerId);
                         success = true;
                     }
                 } catch(e) {}
             }
+            // 3. انستا، فيسبوك، وباقي المواقع (Cobalt APIs)
+            else {
+                if(platform === 'insta' && !val.startsWith('http')) {
+                    val = 'https://instagram.com/stories/' + val.replace('@', '') + '/';
+                }
+                const apiNodes = ["https://api.cobalt.tools/api/json", "https://co.wuk.sh/api/json"];
+                for(let node of apiNodes) {
+                    try {
+                        let r = await fetch(node, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: val, vQuality: "720" })
+                        });
+                        if(r.status == 200) {
+                            let res = await r.json();
+                            if(res.url) {
+                                let rAudio = await fetch(node, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ url: val, isAudioOnly: true }) });
+                                let resAudio = rAudio.status == 200 ? await rAudio.json() : {};
+                                renderMediaResult("تم استخراج المقطع بنجاح", "https://via.placeholder.com/150", res.url, resAudio.url || res.url, res.url, 60, platform, containerId);
+                                success = true;
+                                break;
+                            }
+                        }
+                    } catch(e) {}
+                }
+            }
 
             statusMsg.style.display = 'none';
             if(!success) {
-                statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> السيرفر المحدد غير قادر على جلب الملف حالياً. يرجى تجربة خادم آخر!`;
-                statusMsg.style.color = '#ef4444';
-                statusMsg.style.display = 'block';
+                // إذا فشل يوتيوب، نعرض زر الطوارئ ss
+                if(platform === 'youtube' && ytFallbackId) {
+                    resContainer.querySelector('.media-box').innerHTML = `
+                        <div style="text-align:center; padding:20px;">
+                            <h4 style="color:#ef4444; margin-bottom:15px;">يوتيوب يفرض حماية قوية حالياً</h4>
+                            <a href="https://ssyoutube.com/watch?v=${ytFallbackId}" target="_blank" class="btn-action bg-ss" style="display:inline-flex; width:auto; padding:15px 25px;"><i class="fas fa-external-link-alt"></i> تحميل عبر سيرفر الطوارئ (نافذة آمنة)</a>
+                        </div>`;
+                    resContainer.querySelector('.media-box').style.display = 'flex';
+                } else {
+                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> الرابط غير صحيح، أو أن المقطع محمي حالياً.`;
+                    statusMsg.style.color = '#ef4444';
+                    statusMsg.style.display = 'block';
+                }
             }
         }
 
@@ -551,6 +502,13 @@ HTML_LAYOUT = """
                 </div>
             `;
 
+            if(platform === 'youtube' && ytFallbackId) {
+                actionsHtml += `
+                <div class="btn-group">
+                    <a href="https://ssyoutube.com/watch?v=${ytFallbackId}" target="_blank" class="btn-action bg-ss"><i class="fas fa-external-link-alt"></i> سيرفر الطوارئ (احتياطي)</a>
+                </div>`;
+            }
+
             if(platform === 'tiktok' || platform === 'insta') {
                 actionsHtml += `
                 <div class="btn-group">
@@ -571,47 +529,7 @@ HTML_LAYOUT = """
 def home():
     return render_template_string(HTML_LAYOUT)
 
-# 1. API للبحث في يوتيوب (يتم بمهلة زمنية قصيرة لمنع 502)
-@app.route('/api/search', methods=['POST'])
-def search_youtube():
-    query = request.json.get('query', '')
-    if not query: return jsonify({"error": "فارغ"})
-    try:
-        opts = {'quiet': True, 'extract_flat': True, 'socket_timeout': 6}
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(f"ytsearch5:{query}", download=False)
-            results = [{"title": e.get('title'), "url": f"https://www.youtube.com/watch?v={e.get('id')}", "thumbnail": e.get('thumbnails', [{}])[-1].get('url')} for e in info.get('entries', [])]
-            return jsonify({"results": results})
-    except:
-        return jsonify({"error": "فشل البحث"})
-
-# 2. السيرفر المحلي (يتم استدعاؤه فقط عند الضغط على الخادم المحلي)
-@app.route('/api/local_extract', methods=['POST'])
-def local_extract():
-    url = request.json.get('url', '')
-    if not url: return jsonify({"error": "فارغ"}), 400
-    try:
-        # حماية قصوى: توقف بعد 8 ثواني لضمان عدم حدوث 502 أبداً
-        opts = {
-            'quiet': True, 'nocheckcertificate': True, 'socket_timeout': 8,
-            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}}
-        }
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            formats = info.get('formats', [])
-            v_formats = [f for f in formats if f.get('vcodec') != 'none']
-            best_v = v_formats[-1]['url'] if v_formats else info.get('url')
-            return jsonify({
-                "title": info.get('title', 'Media File'), 
-                "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), 
-                "video_url": best_v, 
-                "audio_url": best_v, 
-                "duration": info.get('duration', 45)
-            })
-    except Exception as e:
-        return jsonify({"error": "فشل جلب الملف عبر السيرفر المحلي."}), 500
-
-# 3. بروكسي الإجبار على التحميل (للسيرفر المحلي فقط)
+# بروكسي الإجبار على التحميل (خفيف جداً ويعمل كمعبر آمن)
 @app.route('/proxy')
 def proxy_download():
     file_url = request.args.get('url')
@@ -620,10 +538,10 @@ def proxy_download():
 
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        # مهلة 10 ثواني للبروكسي
         req = requests.get(file_url, headers=headers, stream=True, verify=False, timeout=10)
         resp = Response(stream_with_context(req.iter_content(chunk_size=1024*512)), status=req.status_code, content_type=req.headers.get('content-type'))
         resp.headers['Content-Disposition'] = f'attachment; filename="Tahmilati_File.{ext}"'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
         return resp
     except:
         return "خطأ بالاتصال", 500
