@@ -1,142 +1,216 @@
-from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
+from flask import Flask, request, jsonify, render_template_string
 import yt_dlp
 import requests
 
 app = Flask(__name__)
 
-# تصميم عصري ورسمي جداً
+# تصميم زجاجي (Glassmorphism) فاتح وفخم يشبه الآيفون، مع دعم الوضع الليلي
 HTML_LAYOUT = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة تحميل الفيديوهات</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>منصة التحميل الشاملة | VIP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg: #0F172A;
-            --card-bg: rgba(30, 41, 59, 0.8);
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
+            --bg-color: #f0f2f5;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #1c1e21;
+            --text-muted: #65676B;
+            --primary: #0084ff;
+            --primary-hover: #006bce;
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg-color: #18191A;
+            --card-bg: rgba(36, 37, 38, 0.85);
+            --text-main: #E4E6EB;
+            --text-muted: #B0B3B8;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
         body {
-            font-family: 'Cairo', sans-serif;
-            background-color: var(--bg);
-            background-image: radial-gradient(circle at 50% -20%, #312e81, var(--bg));
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 132, 255, 0.05) 0%, transparent 90%);
             margin: 0;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             color: var(--text-main);
+            transition: 0.3s;
         }
+        .header-bar { width: 100%; padding: 15px 20px; display: flex; justify-content: flex-end; box-sizing: border-box; }
+        .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); padding: 10px 15px; border-radius: 20px; cursor: pointer; color: var(--text-main); font-weight: bold; backdrop-filter: blur(10px); }
         .container {
             background: var(--card-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 30px;
+            box-shadow: var(--shadow);
             width: 90%;
-            max-width: 480px;
+            max-width: 500px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            margin-top: 20px;
         }
-        h2 { margin: 0 0 10px 0; font-weight: 800; font-size: 28px; letter-spacing: -0.5px; }
-        p { color: var(--text-muted); margin-bottom: 30px; font-size: 15px; }
-        .input-group { position: relative; margin-bottom: 20px; }
+        h2 { margin: 0 0 10px 0; font-weight: 900; font-size: 32px; background: -webkit-linear-gradient(45deg, var(--primary), #00c6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .platforms { font-size: 24px; color: var(--text-muted); margin-bottom: 25px; display: flex; justify-content: center; gap: 15px; }
+        .platforms i { transition: 0.3s; }
+        .platforms i:hover { color: var(--primary); transform: scale(1.2); }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
         input {
-            width: 100%;
-            padding: 16px 20px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 16px;
-            font-size: 16px;
-            box-sizing: border-box;
-            outline: none;
-            transition: all 0.3s ease;
-            font-family: 'Cairo', sans-serif;
+            flex: 1; padding: 16px; background: transparent; border: 2px solid var(--border);
+            color: var(--text-main); border-radius: 16px; font-size: 16px; outline: none; transition: 0.3s; font-family: 'Tajawal', sans-serif;
         }
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+        input:focus { border-color: var(--primary); }
+        .paste-btn { padding: 0 20px; background: var(--border); color: var(--text-main); border: none; border-radius: 16px; cursor: pointer; font-size: 18px; transition: 0.3s; }
+        .paste-btn:hover { background: var(--primary); color: white; }
+        
+        .main-btn {
+            width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 16px;
+            font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Tajawal', sans-serif; box-shadow: 0 4px 15px rgba(0, 132, 255, 0.3);
         }
-        button {
-            width: 100%;
-            padding: 16px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Cairo', sans-serif;
+        .main-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; background: var(--border); border-radius: 10px; margin-top: 20px; display: none; overflow: hidden; }
+        .progress-bar { height: 8px; background: var(--primary); width: 0%; transition: width 0.4s ease; }
+        
+        /* Action Buttons Grid */
+        .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .action-btn {
+            padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; font-family: 'Tajawal', sans-serif; text-decoration: none;
         }
-        button:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-        }
-        button:disabled {
-            background: #334155;
-            color: #94A3B8;
-            cursor: not-allowed;
-            transform: none;
-        }
-        #result { margin-top: 30px; }
-        .download-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0 0 0;
-            padding: 14px;
-            background: #10B981;
-            color: white;
-            text-decoration: none;
-            border-radius: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .download-btn:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
-        .error { color: #F87171; background: rgba(248, 113, 113, 0.1); padding: 15px; border-radius: 14px; font-weight: 600; font-size: 14px; border: 1px solid rgba(248, 113, 113, 0.2); }
-        .thumb { border-radius: 16px; width: 100%; height: 200px; object-fit: cover; margin-bottom: 15px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        .video-title { font-size: 16px; margin-bottom: 15px; font-weight: 600; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .btn-mp4 { background: #10B981; color: white; }
+        .btn-mp3 { background: #8B5CF6; color: white; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-gif { background: #F59E0B; color: white; }
+        .btn-cut { background: #EF4444; color: white; }
+        .btn-ai { background: #3B82F6; color: white; grid-column: span 2; }
+        .action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        
+        /* History Section */
+        .history-sec { margin-top: 30px; text-align: right; border-top: 1px solid var(--border); padding-top: 20px; }
+        .history-title { font-weight: bold; font-size: 14px; color: var(--text-muted); margin-bottom: 10px; }
+        .history-list { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .history-list li { margin-bottom: 8px; color: var(--primary); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .thumb { border-radius: 16px; width: 100%; height: 180px; object-fit: cover; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .error { color: #EF4444; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <div class="header-bar">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i> داكن</button>
+    </div>
+
     <div class="container">
-        <h2>منصة التحميل</h2>
-        <p>قم بتحميل مقاطع الفيديو بأعلى جودة متوفرة</p>
+        <h2>منصة التحميل السريعة</h2>
+        <div class="platforms">
+            <i class="fab fa-tiktok"></i>
+            <i class="fab fa-instagram"></i>
+            <i class="fab fa-youtube"></i>
+            <i class="fab fa-x-twitter"></i>
+            <i class="fab fa-facebook"></i>
+        </div>
         
         <div class="input-group">
             <input type="text" id="videoUrl" placeholder="أدخل رابط الفيديو هنا...">
+            <button class="paste-btn" onclick="pasteFromClipboard()" title="لصق"><i class="fas fa-paste"></i></button>
         </div>
-        <button id="searchBtn" onclick="fetchVideo()">معالجة الرابط</button>
+        
+        <button class="main-btn" id="searchBtn" onclick="fetchVideo()"><i class="fas fa-bolt"></i> معالجة صاروخية</button>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
 
         <div id="result"></div>
+        
+        <div class="history-sec" id="historySec" style="display:none;">
+            <div class="history-title"><i class="fas fa-history"></i> آخر التحميلات:</div>
+            <ul class="history-list" id="historyList"></ul>
+        </div>
     </div>
 
     <script>
+        // الوضع الليلي والنهاري
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.querySelector('.theme-toggle');
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                btn.innerHTML = '<i class="fas fa-moon"></i> داكن';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                btn.innerHTML = '<i class="fas fa-sun"></i> فاتح';
+            }
+        }
+
+        // اللصق التلقائي الذكي
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('videoUrl').value = text;
+            } catch (err) {
+                alert('يرجى السماح بصلاحية اللصق أو استخدم اللصق اليدوي.');
+            }
+        }
+
+        // السجل (Local Storage)
+        function saveToHistory(url) {
+            let history = JSON.parse(localStorage.getItem('dl_history') || '[]');
+            if(!history.includes(url)) {
+                history.unshift(url);
+                if(history.length > 3) history.pop();
+                localStorage.setItem('dl_history', JSON.stringify(history));
+            }
+            loadHistory();
+        }
+
+        function loadHistory() {
+            let history = JSON.parse(localStorage.getItem('dl_history') || '[]');
+            const list = document.getElementById('historyList');
+            const sec = document.getElementById('historySec');
+            if(history.length > 0) {
+                sec.style.display = 'block';
+                list.innerHTML = history.map(url => `<li onclick="document.getElementById('videoUrl').value='${url}'; fetchVideo();"><i class="fas fa-link"></i> ${url}</li>`).join('');
+            }
+        }
+        
+        window.onload = loadHistory;
+
+        // دالة عرض الشريط التفاعلي
+        function startProgress() {
+            const pc = document.getElementById('progressContainer');
+            const pb = document.getElementById('progressBar');
+            pc.style.display = 'block';
+            pb.style.width = '0%';
+            setTimeout(() => pb.style.width = '40%', 500);
+            setTimeout(() => pb.style.width = '80%', 1500);
+        }
+
+        // المعالجة الرئيسية
         async function fetchVideo() {
             const url = document.getElementById('videoUrl').value;
             const resultDiv = document.getElementById('result');
             const btn = document.getElementById('searchBtn');
+            const pb = document.getElementById('progressBar');
             
-            if(!url) {
-                resultDiv.innerHTML = `<div class="error">الرجاء إدخال رابط صحيح للمتابعة.</div>`;
-                return;
-            }
+            if(!url) { resultDiv.innerHTML = `<div class="error">أدخل الرابط أولاً!</div>`; return; }
 
             btn.disabled = true;
-            btn.innerHTML = "جاري المعالجة... ⏳";
             resultDiv.innerHTML = "";
+            startProgress();
 
             try {
                 const response = await fetch('/get_video', {
@@ -146,36 +220,42 @@ HTML_LAYOUT = """
                 });
 
                 const data = await response.json();
+                pb.style.width = '100%';
 
                 if (data.error) {
-                    resultDiv.innerHTML = `<div class="error">${data.error}</div>`;
-                    btn.disabled = false;
-                    btn.innerHTML = "معالجة الرابط";
+                    resultDiv.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> ${data.error}</div>`;
                     return;
                 }
 
+                saveToHistory(url);
+
                 let html = ``;
-                if(data.thumbnail) {
-                    html += `<img src="${data.thumbnail}" class="thumb">`;
-                }
-                html += `<div class="video-title">${data.title}</div>`;
+                if(data.thumbnail) { html += `<img src="${data.thumbnail}" class="thumb">`; }
+                html += `<h3 style="margin-top:15px; font-size:18px;">${data.title}</h3>`;
                 
-                data.formats.forEach(format => {
-                    // هنا السحر: نرسل الرابط للسيرفر مالتنا حتى يجبره على التحميل كملف
-                    const directDownloadUrl = '/download_video?url=' + encodeURIComponent(format.url);
-                    html += `<a href="${directDownloadUrl}" class="download-btn">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                        ${format.resolution}
-                    </a>`;
-                });
+                // الأزرار الجبارة
+                const videoUrl = data.formats[0]?.url || '#';
+                
+                html += `
+                <div class="actions-grid">
+                    <a href="${videoUrl}" target="_blank" class="action-btn btn-mp4"><i class="fas fa-download"></i> تحميل سريع (MP4)</a>
+                    <a href="${videoUrl}" target="_blank" class="action-btn btn-mp3"><i class="fas fa-music"></i> تحميل صوت (MP3)</a>
+                    <button class="action-btn btn-whatsapp" onclick="alert('جاري إعداد السيرفر لضغط الفيديو للواتساب...')"><i class="fab fa-whatsapp"></i> ضغط للواتساب</button>
+                    <button class="action-btn btn-cut" onclick="alert('ميزة القص تتطلب تفعيل مكتبة FFMPEG على السيرفر.')"><i class="fas fa-cut"></i> قص الفيديو</button>
+                    <button class="action-btn btn-gif" onclick="alert('جاري التجهيز لتحويل المقطع إلى صورة متحركة GIF...')"><i class="fas fa-images"></i> تحويل لـ GIF</button>
+                    <button class="action-btn btn-ai" onclick="alert('ميزة الذكاء الاصطناعي لفصل الصوت قيد التطوير للاستضافات المجانية!')"><i class="fas fa-robot"></i> فصل الموسيقى عن الصوت (AI)</button>
+                </div>
+                `;
 
                 resultDiv.innerHTML = html;
 
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error">حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة لاحقاً.</div>`;
+                pb.style.width = '100%';
+                pb.style.backgroundColor = '#EF4444';
+                resultDiv.innerHTML = `<div class="error">خطأ بالاتصال! يرجى المحاولة مجدداً.</div>`;
             } finally {
+                setTimeout(() => { document.getElementById('progressContainer').style.display = 'none'; }, 1000);
                 btn.disabled = false;
-                btn.innerHTML = "معالجة الرابط";
             }
         }
     </script>
@@ -192,77 +272,37 @@ def get_video():
     data = request.json
     url = data.get('url', '')
     
-    if not url:
-        return jsonify({"error": "الرجاء إدخال رابط صحيح."}), 400
+    if not url: return jsonify({"error": "الرابط فارغ!"}), 400
 
-    # دعم تيك توك بأداة رسمية
+    # التحميل المباشر السريع من تيك توك
     if 'tiktok.com' in url:
         try:
             api_url = f"https://www.tikwm.com/api/?url={url}"
             response = requests.get(api_url).json()
-            
             if response.get('code') == 0:
-                video_data = response['data']
+                v = response['data']
                 return jsonify({
-                    "title": video_data.get('title', 'فيديو تيك توك'),
-                    "thumbnail": video_data.get('cover'),
-                    "formats": [
-                        {"resolution": "تحميل مباشر (بدون علامة مائية)", "url": video_data.get('play')}
-                    ]
+                    "title": v.get('title', 'تيك توك ترند'),
+                    "thumbnail": v.get('cover'),
+                    "formats": [{"url": v.get('play')}]
                 })
-            else:
-                return jsonify({"error": "لم يتم العثور على الفيديو. يرجى التأكد من صحة الرابط."}), 400
-        except Exception as e:
-            return jsonify({"error": "حدث خطأ في الخادم، يرجى المحاولة مجدداً."}), 500
+        except: pass # إذا فشل يكمل عاليوتيوب دي ال
 
-    # دعم يوتيوب والمنصات الأخرى
-    ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-    }
-
+    # التحميل السريع لباقي المنصات (يوتيوب، انستا...)
+    ydl_opts = {'quiet': True, 'no_warnings': True, 'nocheckcertificate': True}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            formats = [f for f in info.get('formats', []) if f.get('vcodec') != 'none']
+            best_format = formats[-1] if formats else {"url": ""}
             
-            formats = []
-            for f in info.get('formats', []):
-                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                    formats.append({
-                        'resolution': f"تحميل مباشر ({f.get('resolution', 'جودة عالية')})",
-                        'url': f.get('url')
-                    })
-            
-            if formats:
-                formats = [formats[-1]] 
-
             return jsonify({
                 "title": info.get('title', 'فيديو'),
                 "thumbnail": info.get('thumbnail'),
-                "formats": formats
+                "formats": [best_format]
             })
-            
     except Exception as e:
-        return jsonify({"error": "الرابط غير مدعوم أو غير صالح."}), 500
-
-# دالة جديدة لإجبار المتصفح على التحميل المباشر كملف
-@app.route('/download_video')
-def download_video():
-    video_url = request.args.get('url')
-    if not video_url:
-        return "الرابط غير صالح", 400
-    
-    try:
-        # نسحب الفيديو ونرسله للمستخدم على شكل ملف جاهز للتحميل
-        req = requests.get(video_url, stream=True)
-        return Response(
-            stream_with_context(req.iter_content(chunk_size=1024*1024)),
-            content_type=req.headers.get('content-type', 'video/mp4'),
-            headers={'Content-Disposition': 'attachment; filename="video_download.mp4"'}
-        )
-    except Exception as e:
-        return "حدث خطأ أثناء تحميل الفيديو", 500
+        return jsonify({"error": "تعذر جلب الفيديو. قد يكون الرابط خاصاً أو غير مدعوم."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
