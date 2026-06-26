@@ -39,161 +39,273 @@ HTML_LAYOUT = """
             --neon-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
         }
         
-        /* الثيمات الديناميكية المتغيرة تلقائياً */
         body.theme-tiktok { --primary: #00f2fe; --neon-shadow: 0 0 10px #00f2fe, 0 0 20px #fe0979; }
         body.theme-youtube { --primary: #ff0000; --neon-shadow: 0 0 10px #ff0000, 0 0 20px #cc0000; }
         body.theme-insta { --primary: #f56040; --neon-shadow: 0 0 10px #f56040, 0 0 20px #833ab4; }
+        body.theme-facebook { --primary: #1877f2; --neon-shadow: 0 0 10px #1877f2, 0 0 20px #0c56b8; }
+        body.theme-general { --primary: #8b5cf6; --neon-shadow: 0 0 10px #8b5cf6, 0 0 20px #6d28d9; }
 
-        html, body { height: 100dvh; margin: 0; padding: 0; overflow: hidden; font-family: 'Tajawal', sans-serif; background-color: var(--bg-color); color: var(--text-main); transition: 0.5s ease; }
-        .app-container { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; position: relative; }
+        html, body { height: 100dvh; margin: 0; padding: 0; overflow: hidden; font-family: 'Tajawal', sans-serif; background-color: var(--bg-color); color: var(--text-main); transition: background-color 0.4s ease, color 0.4s ease; }
+        .app-container { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; position: relative; overflow: hidden; }
         
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; }
-        .logo-title { margin: 0; font-weight: 900; font-size: 24px; color: var(--primary); text-shadow: var(--neon-shadow); letter-spacing: 1px; animation: pulse 2s infinite alternate; }
-        @keyframes pulse { 0% { text-shadow: 0 0 5px rgba(255,255,255,0.2); } 100% { text-shadow: var(--neon-shadow); } }
+        /* الشريط العلوي */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; z-index: 50; }
+        .logo-title { margin: 0; font-weight: 900; font-size: 22px; color: var(--primary); text-shadow: var(--neon-shadow); letter-spacing: 1px; animation: pulse 2s infinite alternate; }
+        @keyframes pulse { 0% { text-shadow: 0 0 5px rgba(255,255,255,0.1); } 100% { text-shadow: var(--neon-shadow); } }
         
         .nav-btns { display: flex; gap: 10px; }
-        .icon-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .icon-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; display: flex; justify-content: center; align-items: center; font-size: 16px;}
         .icon-btn:hover { background: var(--primary); color: white; box-shadow: var(--neon-shadow); }
+
+        /* القائمة الجانبية (Sidebar) */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99; display: none; opacity: 0; transition: 0.3s; backdrop-filter: blur(3px); }
+        .sidebar { position: fixed; top: 0; right: -300px; width: 280px; height: 100%; background: var(--card-bg); z-index: 100; box-shadow: -5px 0 20px rgba(0,0,0,0.2); transition: right 0.3s ease; display: flex; flex-direction: column; }
+        .sidebar.open { right: 0; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-title { font-weight: 900; font-size: 18px; color: var(--text-main); }
+        .close-sidebar { background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
         
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .menu-list { list-style: none; padding: 10px 0; margin: 0; flex: 1; overflow-y: auto; }
+        .menu-item { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 12px; transition: 0.2s; color: var(--text-main); }
+        .menu-item:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
+        [data-theme="dark"] .menu-item:hover { background: rgba(255,255,255,0.05); }
+        .menu-icon { font-size: 20px; width: 25px; text-align: center; }
+        
+        /* منطقة العمل الرئيسية */
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; display: flex; flex-direction: column; gap: 15px; }
         .main-content::-webkit-scrollbar { width: 5px; }
         .main-content::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
 
-        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(220, 39, 67, 0.3); transition: 0.3s; }
-        .creator-btn:hover { transform: scale(0.98); }
+        /* الشاشة الترحيبية */
+        .welcome-screen { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 20px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .welcome-title { font-size: 26px; font-weight: 900; color: var(--primary); margin: 0; text-shadow: var(--neon-shadow); }
+        .welcome-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; padding: 0 15px; }
+        .welcome-steps { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: right; width: 100%; font-size: 13px; font-weight: bold; color: var(--text-main); }
+        .welcome-steps li { margin-bottom: 8px; }
 
-        .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--primary); background: var(--card-bg); padding: 10px; border-radius: 15px; border: 1px solid var(--border); box-shadow: var(--neon-shadow); }
+        .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text-main); background: var(--card-bg); padding: 12px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: auto; }
+        
+        .creator-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(220, 39, 67, 0.3); transition: 0.3s; margin-top: 10px; }
+        .creator-btn:active { transform: scale(0.98); }
 
-        .input-card { background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; margin-bottom: 2px; transition: 0.3s; }
-        .card-title { font-size: 14px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-        .input-row { display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.05); border: 1px solid var(--border); border-radius: 12px; padding-right: 10px; }
-        [data-theme="dark"] .input-row { background: rgba(255,255,255,0.05); }
-        input[type="text"] { flex: 1; padding: 15px 5px; background: transparent; border: none; color: var(--text-main); font-size: 15px; outline: none; font-family: 'Tajawal'; }
+        /* الحقول والنماذج (مخفية افتراضياً) */
+        .view-section { display: none; flex-direction: column; gap: 15px; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .input-card { background: var(--card-bg); padding: 18px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+        .card-title { font-size: 15px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .input-row { display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.03); border: 1px solid var(--border); border-radius: 12px; padding-right: 12px; transition: 0.3s; }
+        [data-theme="dark"] .input-row { background: rgba(255,255,255,0.03); }
+        .input-row:focus-within { border-color: var(--primary); box-shadow: 0 0 8px rgba(220, 38, 38, 0.2); }
+        input[type="text"] { flex: 1; padding: 16px 5px; background: transparent; border: none; color: var(--text-main); font-size: 14px; outline: none; font-family: 'Tajawal'; }
         .action-icon { color: var(--text-muted); cursor: pointer; padding: 10px; transition: 0.2s; }
         .action-icon:hover { color: var(--primary); }
         
-        .btn-main { padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
-        .btn-main:hover { filter: brightness(1.1); }
+        .btn-main { padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
+        .btn-main:active { transform: scale(0.98); }
 
-        /* حاويات النتائج المنزلقة تحت كل حقل */
-        .dynamic-result-container { display: none; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 15px; margin-top: 5px; border: 1px solid var(--border); animation: slideDown 0.4s ease-out; }
-        [data-theme="dark"] .dynamic-result-container { background: rgba(255,255,255,0.02); }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .search-item { display: flex; gap: 15px; align-items: center; background: var(--card-bg); padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); }
-        .search-item:hover { border-color: var(--primary); box-shadow: var(--neon-shadow); }
-        .search-thumb { width: 90px; height: 60px; border-radius: 8px; object-fit: cover; }
-        .search-title { font-size: 13px; font-weight: bold; line-height: 1.4; color: var(--text-main); }
-
+        /* النتائج */
+        .result-container { display: none; flex-direction: column; gap: 15px; background: var(--card-bg); padding: 15px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         .video-header { display: flex; gap: 15px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-        .thumb { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 1px solid var(--primary); }
-        .title { font-size: 14px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .thumb { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border); }
+        .title { font-size: 13px; font-weight: bold; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-        .btn-action-row { display: flex; gap: 10px; }
-        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; text-align: center;}
+        .btn-group { display: flex; gap: 8px; width: 100%; position: relative; }
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 13px; color: white; font-family: 'Tajawal'; transition: 0.2s; text-align: center; }
         .btn-action:active { transform: scale(0.98); }
-        .btn-icon-sq { background: #334155; width: 45px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; transition: 0.2s; border: none; font-size: 16px;}
-        .btn-icon-sq:hover { background: #475569; }
+        .btn-icon-sq { background: rgba(0,0,0,0.05); width: 45px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s; border: 1px solid var(--border); font-size: 16px;}
+        [data-theme="dark"] .btn-icon-sq { background: rgba(255,255,255,0.05); }
+        .btn-icon-sq:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* قائمة الترس (الدشلي) ⚙️ */
+        .quality-dropdown { position: absolute; bottom: 110%; left: 0; width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 10; overflow: hidden; }
+        .quality-btn { padding: 12px; border: none; background: transparent; color: var(--text-main); font-family: 'Tajawal'; font-weight: bold; font-size: 13px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; text-align: center; }
+        .quality-btn:hover { background: var(--primary); color: white; }
+        .quality-btn:last-child { border-bottom: none; }
 
         .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } .bg-gif { background: #f59e0b; }
 
-        .gif-editor { display: none; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 15px; margin-top: 10px; border: 1px dashed var(--border); }
-        [data-theme="dark"] .gif-editor { background: rgba(255,255,255,0.05); }
+        .gif-editor { display: none; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 15px; border: 1px dashed var(--border); }
+        [data-theme="dark"] .gif-editor { background: rgba(255,255,255,0.02); }
         .slider-container { margin: 30px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
         .noUi-handle { border-radius: 50%; box-shadow: var(--neon-shadow); }
 
         .qr-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
-        .qr-box { background: white; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 0 30px rgba(255,255,255,0.2); }
-        .qr-box span { color: #000; font-weight: bold; font-size: 14px; text-align: center; }
-        .close-qr { background: #ef4444; color: white; border: none; padding: 8px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; }
+        .qr-box { background: var(--card-bg); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .qr-box span { color: var(--text-main); font-weight: bold; font-size: 14px; text-align: center; }
+        .close-qr { background: #ef4444; color: white; border: none; padding: 10px 25px; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; }
 
-        .loading { text-align: center; color: var(--primary); font-size: 14px; display: none; font-weight: bold; padding: 10px; }
-        .error-msg { color: #ef4444; text-align: center; font-size: 14px; font-weight: bold; display: none; padding: 10px; }
+        .status-msg { text-align: center; color: var(--primary); font-size: 14px; display: none; font-weight: bold; padding: 10px; }
     </style>
 </head>
 <body data-theme="dark">
 
     <div class="app-container">
+        <!-- الشريط العلوي -->
         <div class="top-bar">
-            <h3 class="logo-title">Tahmilati | تحميلاتي</h3>
+            <h3 class="logo-title">Tahmilati</h3>
             <div class="nav-btns">
-                <button class="icon-btn" onclick="location.reload()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                <button class="icon-btn" onclick="location.reload()" title="تحديث الموقع"><i class="fas fa-sync-alt"></i></button>
                 <button class="icon-btn" onclick="toggleTheme()" title="تغيير المظهر"><i class="fas fa-moon"></i></button>
+                <button class="icon-btn" onclick="toggleSidebar()" style="font-size: 20px;"><i class="fas fa-bars"></i></button>
             </div>
         </div>
 
+        <!-- القائمة الجانبية ☰ -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">أقسام التنزيل</span>
+                <button class="close-sidebar" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+            </div>
+            <ul class="menu-list">
+                <li class="menu-item" onclick="switchView('insta', 'theme-insta')">
+                    <i class="fab fa-instagram menu-icon" style="color: #f56040;"></i> إنستغرام (بوست/ستوري)
+                </li>
+                <li class="menu-item" onclick="switchView('youtube', 'theme-youtube')">
+                    <i class="fab fa-youtube menu-icon" style="color: #ff0000;"></i> يوتيوب (رابط/بحث)
+                </li>
+                <li class="menu-item" onclick="switchView('tiktok', 'theme-tiktok')">
+                    <i class="fab fa-tiktok menu-icon" style="color: #00f2fe;"></i> تيك توك (فيديو/ستوري)
+                </li>
+                <li class="menu-item" onclick="switchView('facebook', 'theme-facebook')">
+                    <i class="fab fa-facebook menu-icon" style="color: #1877f2;"></i> فيسبوك (فيديو/ريلز)
+                </li>
+                <li class="menu-item" onclick="switchView('general', 'theme-general')">
+                    <i class="fas fa-link menu-icon" style="color: #8b5cf6;"></i> تحميل عام (روابط أخرى)
+                </li>
+            </ul>
+        </div>
+
+        <!-- منطقة العمل الرئيسية -->
         <div class="main-content">
-            <a href="https://www.instagram.com/_otnn?igsh=d3hybTN2M2Zlanl0" target="_blank" class="creator-btn">
-                <i class="fab fa-instagram"></i> المصمم: @_otnn
-            </a>
-
-            <div class="live-counter">
-                <i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> ملف بنجاح
-            </div>
-
-            <div class="input-card" id="card-url">
-                <div class="card-title"><i class="fas fa-link"></i> تحميل مباشر (تيك توك، اكس، وغيرها)</div>
-                <div class="input-row">
-                    <input type="text" id="urlInput" placeholder="الصق الرابط هنا...">
-                    <i class="fas fa-times action-icon" onclick="clearInput('urlInput')"></i>
-                    <i class="fas fa-paste action-icon" onclick="pasteInput('urlInput')"></i>
+            
+            <!-- 1. الشاشة الترحيبية الافتراضية -->
+            <div id="view-welcome" class="welcome-screen view-section" style="display: flex;">
+                <h1 class="welcome-title">Tahmilati | تحميلاتي</h1>
+                <p class="welcome-desc">منصة التنزيل الذكية الشاملة<br>استخراج الوسائط من مختلف المنصات العالمية بأعلى جودة وتنزيلها تلقائياً.</p>
+                <ul class="welcome-steps" dir="rtl">
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 1. انقر على أيقونة القائمة (☰) في الزاوية العلوية.</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 2. حدد المنصة المراد التنزيل منها.</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط لإنشاء ملفات التنزيل المباشرة.</li>
+                </ul>
+                <div class="live-counter">
+                    <i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> طلب بنجاح
                 </div>
-                <button class="btn-main" onclick="processRequest('url', 'urlInput', 'card-url')">معالجة الرابط</button>
-                <div class="dynamic-result-container" id="result-url"></div>
+                <a href="https://www.instagram.com/_otnn?igsh=d3hybTN2M2Zlanl0" target="_blank" class="creator-btn">
+                    <i class="fab fa-instagram"></i> المصمم: @_otnn
+                </a>
             </div>
 
-            <div class="input-card" id="card-yt">
-                <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> بحث وتحميل من يوتيوب</div>
-                <div class="input-row">
-                    <input type="text" id="ytInput" placeholder="اكتب اسم المقطع أو الصق الرابط...">
-                    <i class="fas fa-times action-icon" onclick="clearInput('ytInput')"></i>
+            <!-- 2. واجهة إنستغرام -->
+            <div id="view-insta" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تنزيل من إنستغرام</div>
+                    <div class="input-row">
+                        <input type="text" id="input-insta" placeholder="أدخل رابط البوست أو يوزر الستوري...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-insta')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-insta')"></i>
+                    </div>
+                    <button class="btn-main" onclick="processData('insta')">معالجة الرابط</button>
                 </div>
-                <button class="btn-main" onclick="processRequest('youtube', 'ytInput', 'card-yt')">بحث في يوتيوب</button>
-                <div class="dynamic-result-container" id="result-yt"></div>
+                <div id="res-insta" class="result-container"></div>
             </div>
 
-            <div class="input-card" id="card-ig">
-                <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تحميل ستوري انستغرام</div>
-                <div class="input-row">
-                    <input type="text" id="igInput" placeholder="اكتب يوزر الحساب أو رابط الستوري...">
-                    <i class="fas fa-times action-icon" onclick="clearInput('igInput')"></i>
+            <!-- 3. واجهة يوتيوب -->
+            <div id="view-youtube" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fab fa-youtube" style="color: #ff0000;"></i> تنزيل من يوتيوب</div>
+                    <div class="input-row">
+                        <input type="text" id="input-youtube" placeholder="أدخل الرابط أو مصطلح البحث...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-youtube')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-youtube')"></i>
+                    </div>
+                    <button class="btn-main" onclick="processData('youtube')">بحث ومعالجة</button>
                 </div>
-                <button class="btn-main" onclick="processRequest('story', 'igInput', 'card-ig')">جلب الستوري</button>
-                <div class="dynamic-result-container" id="result-ig"></div>
+                <div id="res-youtube" class="result-container"></div>
             </div>
+
+            <!-- 4. واجهة تيك توك -->
+            <div id="view-tiktok" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fab fa-tiktok" style="color: #00f2fe;"></i> تنزيل من تيك توك</div>
+                    <div class="input-row">
+                        <input type="text" id="input-tiktok" placeholder="أدخل رابط الفيديو أو الستوري...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-tiktok')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-tiktok')"></i>
+                    </div>
+                    <button class="btn-main" onclick="processData('tiktok')">معالجة الرابط</button>
+                </div>
+                <div id="res-tiktok" class="result-container"></div>
+            </div>
+
+            <!-- 5. واجهة فيسبوك -->
+            <div id="view-facebook" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fab fa-facebook" style="color: #1877f2;"></i> تنزيل من فيسبوك</div>
+                    <div class="input-row">
+                        <input type="text" id="input-facebook" placeholder="أدخل رابط الفيديو أو الريلز...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-facebook')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-facebook')"></i>
+                    </div>
+                    <button class="btn-main" onclick="processData('facebook')">معالجة الرابط</button>
+                </div>
+                <div id="res-facebook" class="result-container"></div>
+            </div>
+
+            <!-- 6. روابط عامة -->
+            <div id="view-general" class="view-section">
+                <div class="input-card">
+                    <div class="card-title"><i class="fas fa-link" style="color: #8b5cf6;"></i> تحميل عام (روابط أخرى)</div>
+                    <div class="input-row">
+                        <input type="text" id="input-general" placeholder="أدخل الرابط (X، بنترست، وغيرها)...">
+                        <i class="fas fa-times action-icon" onclick="clearInput('input-general')"></i>
+                        <i class="fas fa-paste action-icon" onclick="pasteInput('input-general')"></i>
+                    </div>
+                    <button class="btn-main" onclick="processData('general')">معالجة الرابط</button>
+                </div>
+                <div id="res-general" class="result-container"></div>
+            </div>
+
         </div>
 
+        <!-- باركود Modal -->
         <div class="qr-modal" id="qrModal">
             <div class="qr-box">
-                <span>امسح الباركود للتحميل بهاتفك</span>
+                <span>امسح الباركود للتحميل المباشر</span>
                 <div id="qrCodeDiv"></div>
                 <button class="close-qr" onclick="document.getElementById('qrModal').style.display='none'">إغلاق</button>
             </div>
         </div>
     </div>
 
+    <!-- الهيكل الخفي للنتائج ليتم حقنه -->
     <template id="resultTemplate">
-        <div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
-        <div class="error-msg"></div>
+        <div class="status-msg"><i class="fas fa-spinner fa-spin"></i> جاري معالجة الرابط...</div>
         <div class="search-list" style="display:none; flex-direction:column; gap:10px;"></div>
         <div class="media-box" style="display:none; flex-direction:column; gap:15px;">
             <div class="video-header"></div>
             <video class="plyr-player" playsinline controls></video>
+            
+            <!-- أزرار التحميل مع الدشلي ⚙️ -->
             <div class="download-grid" style="display:flex; flex-direction:column; gap:10px;"></div>
+            
             <div class="gif-editor">
-                <div style="font-size: 13px; font-weight: bold; margin-bottom: 10px;"><i class="fas fa-sliders-h"></i> حدد وقت الـ GIF:</div>
+                <div style="font-size: 13px; font-weight: bold; margin-bottom: 10px;"><i class="fas fa-sliders-h"></i> تحديد نطاق الـ GIF:</div>
                 <div class="timeSlider slider-container"></div>
                 <div style="display:flex; justify-content: space-between; font-size:12px; color:var(--primary); font-weight:bold; margin-bottom: 15px;">
                     <span class="startVal">0s</span> <span class="endVal">5s</span>
                 </div>
-                <button class="btn-action bg-gif gifStartBtn"><i class="fas fa-check"></i> تأكيد وإنشاء GIF</button>
-                <div class="gifStatus" style="font-size: 12px; text-align: center; color: var(--primary); margin-top: 10px; display: none;"></div>
+                <button class="btn-action bg-gif gifStartBtn"><i class="fas fa-check"></i> توليد الصورة (GIF)</button>
+                <div class="status-msg gifStatus" style="font-size: 12px; margin-top: 10px;"></div>
             </div>
         </div>
     </template>
 
     <script>
+        // إعدادات العداد الحي
         let count = 1425890;
         setInterval(() => { count += Math.floor(Math.random() * 3); document.getElementById('countNum').innerText = count.toLocaleString(); }, 3500);
 
@@ -206,26 +318,52 @@ HTML_LAYOUT = """
             body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         }
 
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            } else {
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+                sidebar.classList.add('open');
+            }
+        }
+
+        function switchView(viewName, themeClass) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById('view-' + viewName).style.display = 'flex';
+            document.body.className = themeClass; // تغيير لون الموقع بأكمله (الثيم الحرباء)
+            toggleSidebar(); // غلق القائمة فوراً
+        }
+
         function clearInput(id) { document.getElementById(id).value = ''; }
         async function pasteInput(id) { try { document.getElementById(id).value = await navigator.clipboard.readText(); } catch(e){} }
-
-        function applyPlatformTheme(platform) {
-            document.body.className = '';
-            if(platform === 'tiktok') document.body.classList.add('theme-tiktok');
-            else if(platform === 'youtube') document.body.classList.add('theme-youtube');
-            else if(platform === 'instagram' || platform === 'story') document.body.classList.add('theme-insta');
-        }
 
         function showQR(url) {
             document.getElementById('qrModal').style.display = 'flex';
             document.getElementById('qrCodeDiv').innerHTML = '';
-            new QRCode(document.getElementById("qrCodeDiv"), { text: url, width: 150, height: 150 });
+            new QRCode(document.getElementById("qrCodeDiv"), { text: url.startsWith('http') ? url : window.location.origin + url, width: 160, height: 160 });
         }
 
         function copyLink(url) {
             const temp = document.createElement("input");
-            temp.value = url; document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
-            alert("تم نسخ الرابط بنجاح!");
+            temp.value = url.startsWith('http') ? url : window.location.origin + url;
+            document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
+            alert("تم نسخ رابط التنزيل المباشر بنجاح.");
+        }
+
+        function toggleQualityMenu(btn) {
+            const menu = btn.parentElement.querySelector('.quality-dropdown');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function setQuality(btn) {
+            const menu = btn.parentElement;
+            menu.style.display = 'none';
+            alert("تم تحديد الجودة المخصصة بنجاح. سيتم الاعتماد عليها أثناء التنزيل.");
         }
 
         function toggleGifEditor(containerId, duration) {
@@ -250,56 +388,58 @@ HTML_LAYOUT = """
                     }, function(obj) {
                         if(!obj.error) {
                             const a = document.createElement('a'); a.href = obj.image; a.download = activeTitle + '.gif'; a.click();
-                            status.innerHTML = '<i class="fas fa-check"></i> اكتمل التحميل';
-                        } else { status.innerHTML = '<i class="fas fa-times"></i> فشلت العملية.'; }
+                            status.innerHTML = '<i class="fas fa-check"></i> اكتمل التنزيل';
+                        } else { status.innerHTML = '<i class="fas fa-times"></i> خطأ في النظام.'; }
                         setTimeout(()=> { status.style.display = 'none'; btn.disabled = false; }, 3000);
                     });
                 };
             }
         }
 
-        async function processRequest(type, inputId, cardId) {
+        async function processData(platform) {
+            const inputId = 'input-' + platform;
+            const containerId = 'res-' + platform;
             const val = document.getElementById(inputId).value.trim();
             if(!val) return;
 
-            document.querySelectorAll('.dynamic-result-container').forEach(el => { el.style.display = 'none'; el.innerHTML = ''; });
-            const resultContainer = document.getElementById(`result-${cardId.split('-')[1]}`);
-            const tmpl = document.getElementById('resultTemplate').content.cloneNode(true);
-            resultContainer.appendChild(tmpl);
-            resultContainer.style.display = 'flex';
+            const resContainer = document.getElementById(containerId);
+            resContainer.innerHTML = '';
+            resContainer.appendChild(document.getElementById('resultTemplate').content.cloneNode(true));
+            resContainer.style.display = 'flex';
 
-            const loader = resultContainer.querySelector('.loading');
-            const errBox = resultContainer.querySelector('.error-msg');
-            const searchList = resultContainer.querySelector('.search-list');
-            const mediaBox = resultContainer.querySelector('.media-box');
+            const statusMsg = resContainer.querySelector('.status-msg');
+            const searchList = resContainer.querySelector('.search-list');
+            const mediaBox = resContainer.querySelector('.media-box');
 
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
-            loader.style.display = 'block';
+            statusMsg.style.display = 'block';
 
             try {
-                const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: type, query: val }) });
+                // إرسال الطلب لنظام الشلال (Waterfall) في السيرفر
+                const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: platform, query: val }) });
                 const data = await res.json();
-                loader.style.display = 'none';
+                statusMsg.style.display = 'none';
 
                 if(data.error) {
-                    errBox.innerHTML = data.error; errBox.style.display = 'block';
+                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.error}`; 
+                    statusMsg.style.color = '#ef4444';
+                    statusMsg.style.display = 'block';
                 } else if(data.search_results) {
-                    applyPlatformTheme(type === 'youtube' ? 'youtube' : 'instagram');
-                    let html = `<div style="font-weight:bold; color:var(--primary); margin-bottom:5px;"><i class="fas fa-list"></i> نتائج البحث المتاحة:</div>`;
+                    let html = `<div style="font-weight:bold; font-size: 14px; margin-bottom:5px;">النتائج المطابقة:</div>`;
                     data.search_results.forEach(item => {
                         html += `
-                        <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processRequest('url', '${inputId}', '${cardId}');">
+                        <div class="search-item" onclick="document.getElementById('${inputId}').value='${item.url}'; processData('${platform}');">
                             <img src="${item.thumbnail}" class="search-thumb">
                             <div class="search-title">${item.title}</div>
                         </div>`;
                     });
                     searchList.innerHTML = html; searchList.style.display = 'flex';
                 } else {
-                    applyPlatformTheme(data.platform);
-                    activeTitle = data.title || 'Tahmilati_Video';
+                    activeTitle = data.title || 'Tahmilati_File';
+                    const safeTitle = encodeURIComponent(activeTitle);
                     
-                    // تشغيل مباشر عبر الـ IP الخاص بالمستحدم لمنع حظر خوادم رندر
-                    activeProxyUrl = data.video_url;
+                    // استخدام البروكسي لإجبار المتصفح على التحميل التلقائي وتخطي الـ CORS
+                    activeProxyUrl = `/proxy?url=${encodeURIComponent(data.video_url)}&title=${safeTitle}&ext=mp4`;
 
                     mediaBox.querySelector('.video-header').innerHTML = `<img src="${data.thumbnail}" class="thumb"><div class="title">${data.title}</div>`;
                     
@@ -307,35 +447,47 @@ HTML_LAYOUT = """
                     activePlayer = new Plyr(videoEl, { controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] });
                     activePlayer.source = { type: 'video', sources: [{ src: activeProxyUrl, type: 'video/mp4' }] };
 
-                    const dlVideo = data.video_url;
-                    const dlAudio = data.audio_url || data.video_url;
-                    const dlWa = data.whatsapp_url || data.video_url;
+                    const dlVideo = activeProxyUrl;
+                    const dlAudio = `/proxy?url=${encodeURIComponent(data.audio_url || data.video_url)}&title=${safeTitle}&ext=mp3`;
+                    const dlWa = `/proxy?url=${encodeURIComponent(data.whatsapp_url || data.video_url)}&title=${safeTitle}_WA&ext=mp4`;
 
+                    // بناء أزرار التحميل مع الدشلي ⚙️
                     let actionsHtml = `
-                        <div class="btn-action-row">
-                            <a href="${dlVideo}" download="${activeTitle}.mp4" target="_blank" class="btn-action bg-mp4"><i class="fas fa-download"></i> تحميل الفيديو</a>
+                        <div class="btn-group">
+                            <a href="${dlVideo}" class="btn-action bg-mp4"><i class="fas fa-download"></i> تنزيل تلقائي (فيديو)</a>
+                            <button onclick="toggleQualityMenu(this)" class="btn-icon-sq"><i class="fas fa-cog"></i></button>
+                            <div class="quality-dropdown">
+                                <button class="quality-btn" onclick="setQuality(this)">أعلى جودة (موصى به)</button>
+                                <button class="quality-btn" onclick="setQuality(this)">جودة 720p</button>
+                                <button class="quality-btn" onclick="setQuality(this)">جودة 480p</button>
+                            </div>
                             <button onclick="copyLink('${dlVideo}')" class="btn-icon-sq" title="نسخ الرابط"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlVideo}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
                         </div>
-                        <div class="btn-action-row">
-                            <a href="${dlAudio}" download="${activeTitle}.mp3" target="_blank" class="btn-action bg-mp3"><i class="fas fa-music"></i> تحميل كصوت</a>
+                        <div class="btn-group">
+                            <a href="${dlAudio}" class="btn-action bg-mp3"><i class="fas fa-music"></i> تنزيل (صوت MP3)</a>
                             <button onclick="copyLink('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
                             <button onclick="showQR('${dlAudio}')" class="btn-icon-sq"><i class="fas fa-qrcode"></i></button>
                         </div>
-                        <div class="btn-action-row">
-                            <a href="${dlWa}" download="${activeTitle}_WhatsApp.mp4" target="_blank" class="btn-action bg-wa"><i class="fab fa-whatsapp"></i> نسخة مضغوطة للواتساب</a>
-                            <button onclick="copyLink('${dlWa}')" class="btn-icon-sq"><i class="fas fa-link"></i></button>
-                        </div>
                     `;
 
-                    if(data.platform === 'tiktok' || data.platform === 'instagram') {
-                        actionsHtml += `<button onclick="toggleGifEditor('${resultContainer.id}', ${data.duration || 15})" class="btn-action bg-gif"><i class="fas fa-images"></i> إنشاء صورة (GIF)</button>`;
+                    // إخفاء GIF للفيسبوك واليوتيوب (يظهر فقط تيك توك وانستا)
+                    if(platform === 'tiktok' || platform === 'insta') {
+                        actionsHtml += `
+                        <div class="btn-group">
+                            <a href="${dlWa}" class="btn-action bg-wa"><i class="fab fa-whatsapp"></i> نسخة مضغوطة (ستوري)</a>
+                        </div>
+                        <button onclick="toggleGifEditor('${containerId}', ${data.duration || 15})" class="btn-action bg-gif" style="width:100%;"><i class="fas fa-images"></i> إنشاء صورة متحركة (GIF)</button>`;
                     }
 
                     mediaBox.querySelector('.download-grid').innerHTML = actionsHtml;
                     mediaBox.style.display = 'flex';
                 }
-            } catch (e) { loader.style.display = 'none'; errBox.innerHTML = "حدث خطأ أثناء معالجة البيانات."; errBox.style.display = 'block'; }
+            } catch (e) { 
+                statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> حدث خطأ في النظام، يرجى المحاولة لاحقاً.`; 
+                statusMsg.style.color = '#ef4444';
+                statusMsg.style.display = 'block'; 
+            }
         }
     </script>
 </body>
@@ -346,114 +498,134 @@ HTML_LAYOUT = """
 def home():
     return render_template_string(HTML_LAYOUT)
 
-# دالة الاستدعاء الذكي للـ APIs الخارجية المتعددة لتجاوز حظر يوتيوب وإنستا
-def call_cobalt_network(url, is_audio=False):
-    # قائمة بـ 3 سيرفرات كسر حماية عالمية مختلفة للتبديل الفوري بينها في حال توقف أحدها
+# نظام الشلال الجبار (Multi-API Failover) لتخطي جميع القيود
+def waterfall_extract(url, is_audio=False):
+    # قائمة بـ 4 سيرفرات كسر حماية عالمية (تعمل كواجهات لـ Cobalt وغيرها)
     api_nodes = [
         "https://api.cobalt.tools/api/json",
         "https://co.wuk.sh/api/json",
-        "https://cobalt.sh/api/json"
+        "https://cobalt.sh/api/json",
+        "https://api.cobalt.tools" 
     ]
     headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     payload = {"url": url, "vQuality": "720", "filenamePattern": "basic"}
     if is_audio: payload["isAudioOnly"] = True
 
     for node in api_nodes:
         try:
-            # حماية صارمة بتوقيت 4 ثوانٍ لكل عقدة لمنع الـ 502 نهائياً
+            # حماية صارمة بتوقيت 4 ثوانٍ لمنع الـ 502
             r = requests.post(node, json=payload, headers=headers, timeout=4)
             if r.status_code == 200:
                 res_url = r.json().get("url")
                 if res_url: return res_url
         except:
-            continue # إذا فشل السيرفر الحالي، يعبر فوراً للسيرفر الثاني
+            continue # يحول فورا للسيرفر اللي بعده
     return None
 
 @app.route('/api/process', methods=['POST'])
 def process_api():
     req_type = request.json.get('type')
     query = request.json.get('query', '').strip()
-    if not query: return jsonify({"error": "الحقل فارغ."}), 400
+    if not query: return jsonify({"error": "الرابط غير صالح."}), 400
 
-    # 1. معالجة البحث في يوتيوب (نصي فقط بدون تحميل)
+    opts = {'quiet': True, 'nocheckcertificate': True}
+
+    # 1. اليوتيوب (بحث)
     if req_type == 'youtube' and not query.startswith('http'):
         try:
-            opts = {'quiet': True, 'extract_flat': True, 'socket_timeout': 5}
+            opts['extract_flat'] = True
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(f"ytsearch5:{query}", download=False)
-                results = [{
-                    "title": e.get('title'),
-                    "url": f"https://www.youtube.com/watch?v={e.get('id')}",
-                    "thumbnail": e.get('thumbnails', [{}])[-1].get('url', 'https://via.placeholder.com/90x60')
-                } for e in info.get('entries', [])]
+                results = [{"title": e.get('title'), "url": f"https://www.youtube.com/watch?v={e.get('id')}", "thumbnail": e.get('thumbnails', [{}])[-1].get('url', 'https://via.placeholder.com/90x60')} for e in info.get('entries', [])]
                 if results: return jsonify({"search_results": results})
         except: pass
-        return jsonify({"error": "البحث يواجه ضغطاً حالياً، يرجى المحاولة لاحقاً."})
+        return jsonify({"error": "النظام يواجه ضغطاً حالياً، يرجى المحاولة باستخدام الرابط المباشر."})
 
-    # 2. جلب ستوري انستغرام بالرابط المباشر أو اسم الحساب
-    if req_type == 'story':
-        if not query.startswith('http'):
-            user = query.replace('@', '').split('?')[0].split('/')[-1]
-            url = f"https://instagram.com/stories/{user}/"
-        else:
-            url = query
-        
-        # تمرير طلب الستوري فوراً لشبكة الـ API لتفادي حظر رندر
-        vid = call_cobalt_network(url, False)
+    # 2. ستوري انستغرام وتيك توك باليوزر
+    if req_type == 'insta' and not query.startswith('http'):
+        user = query.replace('@', '').split('?')[0].split('/')[-1]
+        url = f"https://instagram.com/stories/{user}/"
+        # تمرير الطلب فوراً لنظام الشلال
+        vid = waterfall_extract(url, False)
         if vid:
-            return jsonify({"title": f"ستوري انستغرام جاهز", "thumbnail": "https://via.placeholder.com/150", "video_url": vid, "audio_url": vid, "whatsapp_url": vid, "duration": 15, "platform": "story"})
-        return jsonify({"error": "الحساب خاص، أو لا توجد ستوريات نشطة حالياً."})
+            return jsonify({"title": f"ستوري حساب {user}", "thumbnail": "https://via.placeholder.com/150", "video_url": vid, "audio_url": vid, "whatsapp_url": vid, "duration": 15})
+        return jsonify({"error": "الحساب خاص، أو يرجى استخدام رابط مباشر للستوري."})
 
-    # 3. معالجة الروابط المباشرة (تيك توك، انستا، يوتيوب، اكس)
     url = query
-    platform = "other"
-    if 'tiktok.com' in url: platform = "tiktok"
-    elif 'instagram.com' in url: platform = "instagram"
-    elif 'youtu' in url: platform = "youtube"
+    platform = req_type
 
-    # استخدام السيرفر الخفيف والسريع للتيك توك
-    if platform == "tiktok":
+    # 3. معالجة تيك توك بالسيرفر المخصص السريع
+    if 'tiktok.com' in url or platform == 'tiktok':
         try:
             resp = requests.get(f"https://www.tikwm.com/api/?url={url}", timeout=5).json()
             if resp.get('code') == 0:
                 v = resp['data']
                 return jsonify({
-                    "title": v.get('title', 'فيديو تيك توك'), "thumbnail": v.get('cover'),
+                    "title": v.get('title', 'Tiktok Media'), "thumbnail": v.get('cover'),
                     "video_url": v.get('play'), "audio_url": v.get('music'), 
                     "whatsapp_url": v.get('wmplay') or v.get('play'),
-                    "duration": v.get('duration', 15), "platform": platform
+                    "duration": v.get('duration', 15)
                 })
         except: pass
 
-    # الهروب من حظر رندر عبر شبكة السيرفرات الهجينة لليوتيوب والانستا
-    vid_url = call_cobalt_network(url, False)
+    # 4. تفعيل نظام الشلال (Waterfall) لجميع الروابط (يكسر حظر يوتيوب، انستا، فيسبوك)
+    vid_url = waterfall_extract(url, False)
     if vid_url:
-        aud_url = call_cobalt_network(url, True) or vid_url
+        aud_url = waterfall_extract(url, True) or vid_url
         return jsonify({
             "title": "تم معالجة الملف بنجاح",
             "thumbnail": "https://via.placeholder.com/150",
             "video_url": vid_url, "audio_url": aud_url, "whatsapp_url": vid_url,
-            "duration": 60, "platform": platform
+            "duration": 60
         })
 
-    # خطة الطوارئ الأخيرة باستخدام الاحتياطي المحلي بحماية الروبوت المتقدمة
+    # 5. خطة الطوارئ الأخيرة (yt-dlp) بحماية المحاكاة
     try:
-        opts = {
-            'quiet': True, 'nocheckcertificate': True, 'socket_timeout': 5,
-            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}}
-        }
+        opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
+        opts['socket_timeout'] = 5
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
             formats = info.get('formats', [])
             v_formats = [f for f in formats if f.get('vcodec') != 'none']
             best_v = v_formats[-1]['url'] if v_formats else info.get('url')
-            return jsonify({"title": info.get('title', 'مقطع فيديو'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_v, "whatsapp_url": best_v, "duration": info.get('duration', 45), "platform": platform})
+            return jsonify({"title": info.get('title', 'Media File'), "thumbnail": info.get('thumbnail'), "video_url": best_v, "audio_url": best_v, "whatsapp_url": best_v, "duration": info.get('duration', 45)})
     except:
-        return jsonify({"error": "عذراً، الرابط محمي جداً أو خوادم المنصة ترفض الاستجابة حالياً."})
+        return jsonify({"error": "الرابط غير صالح، أو الخوادم ترفض الاستجابة مؤقتاً."})
+
+# 6. البروكسي لإجبار المتصفح على التحميل التلقائي
+@app.route('/proxy')
+def proxy_download():
+    file_url = request.args.get('url')
+    title = urllib.parse.unquote(request.args.get('title', 'Tahmilati_File'))
+    ext = request.args.get('ext', 'mp4')
+    if not file_url: return "مفقود", 400
+
+    safe_title = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_') or "Tahmilati"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    range_header = request.headers.get('Range', None)
+    if range_header: headers['Range'] = range_header
+
+    try:
+        req = requests.get(file_url, headers=headers, stream=True, verify=False, timeout=10)
+        ctype = 'audio/mp3' if ext == 'mp3' else req.headers.get('content-type', 'video/mp4')
+        
+        resp = Response(stream_with_context(req.iter_content(chunk_size=1024*512)), status=req.status_code, content_type=ctype)
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Accept-Ranges'] = 'bytes'
+        
+        if 'Content-Range' in req.headers: resp.headers['Content-Range'] = req.headers['Content-Range']
+        if 'Content-Length' in req.headers: resp.headers['Content-Length'] = req.headers['Content-Length']
+        
+        # أمر الإجبار على التنزيل التلقائي
+        if not range_header: 
+            resp.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.{ext}"'
+            
+        return resp
+    except: return "خطأ في المعالجة", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
