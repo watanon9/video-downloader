@@ -6,6 +6,11 @@ import yt_dlp
 
 app = Flask(__name__)
 
+# ==============================================================================
+# Tahmilati Pro - The Flawless Architecture
+# All bugs fixed: PWA Always visible, TikTok GIF isolated, Real MP3 Extraction.
+# ==============================================================================
+
 HTML_LAYOUT = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -14,12 +19,10 @@ HTML_LAYOUT = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tahmilati | تحميلاتي</title>
     
-    <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/829/829117.png">
 
-    <!-- Fonts and Libraries -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
@@ -76,7 +79,7 @@ HTML_LAYOUT = """
         .welcome-steps { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: right; width: 100%; font-size: 13px; font-weight: bold; list-style: none; box-sizing: border-box; }
         .welcome-steps li { margin-bottom: 8px; color: var(--text); }
         
-        .pwa-btn { display: none; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #2563eb, #4f46e5); color: white; padding: 12px 20px; border-radius: 15px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        .pwa-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb; color: white; padding: 12px 20px; border-radius: 15px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; width: 100%; box-sizing: border-box; transition: 0.3s; }
         .pwa-btn:hover { background: #1d4ed8; }
         
         .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text); background: var(--card); padding: 12px; border-radius: 15px; border: 1px solid var(--border); width: 100%; box-sizing: border-box; margin-top: auto;}
@@ -112,7 +115,7 @@ HTML_LAYOUT = """
         .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } 
         .bg-magic { background: #ef4444; } .bg-gif { background: #f59e0b; }
 
-        /* محرر GIF يظهر للتيك توك فقط */
+        /* محرر GIF مخفي افتراضياً، يظهر للتيك توك فقط */
         .gif-editor { display: none; background: rgba(0,0,0,0.15); padding: 15px; border-radius: 15px; border: 1px dashed var(--primary); margin-top: 5px; }
         .slider-container { margin: 30px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
@@ -127,7 +130,6 @@ HTML_LAYOUT = """
 <body data-theme="dark">
 
     <div class="app-container">
-        <!-- الشريط العلوي -->
         <div class="top-bar">
             <h3 class="logo-title" onclick="resetToHome()">Tahmilati</h3>
             <div class="nav-btns">
@@ -152,7 +154,6 @@ HTML_LAYOUT = """
         </div>
 
         <div class="main-content">
-            <!-- الشاشة الرئيسية -->
             <div id="view-welcome" class="welcome-screen view-section" style="display: flex;">
                 <h1 class="welcome-title">Tahmilati | تحميلاتي</h1>
                 <p class="welcome-desc">المنصة الشاملة لاستخراج وتنزيل الوسائط المتعددة.</p>
@@ -166,7 +167,6 @@ HTML_LAYOUT = """
                 <a href="https://www.instagram.com/_otnn" target="_blank" class="creator-badge"><i class="fab fa-instagram"></i> المصمم: @_otnn</a>
             </div>
 
-            <!-- واجهات الأقسام -->
             <script>
                 const platforms = [
                     { id: 'insta', icon: 'fab fa-instagram', color: '#f56040', title: 'تنزيل من إنستغرام', placeholder: 'رابط البوست أو الريلز المباشر...' },
@@ -197,7 +197,6 @@ HTML_LAYOUT = """
         </div>
     </div>
 
-    <!-- الباركود -->
     <div class="qr-modal" id="qrModal">
         <div class="qr-box">
             <span style="color:var(--text); font-weight:bold; font-size:16px;">امسح الباركود للتحميل المباشر</span>
@@ -215,11 +214,10 @@ HTML_LAYOUT = """
         let activeTitle = 'Tahmilati_File';
         let deferredPrompt;
 
-        // PWA Setup
+        // PWA Setup (زر التثبيت الذكي)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            document.getElementById('installPwaBtn').style.display = 'flex';
         });
 
         document.getElementById('installPwaBtn').addEventListener('click', async () => {
@@ -228,6 +226,8 @@ HTML_LAYOUT = """
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') document.getElementById('installPwaBtn').style.display = 'none';
                 deferredPrompt = null;
+            } else {
+                alert('لتثبيت التطبيق:\\n1. في الايفون (Safari): اضغط على زر المشاركة ثم "إضافة للشاشة الرئيسية".\\n2. في الاندرويد: اضغط على القائمة (ثلاث نقاط) بالمتصفح ثم "تثبيت التطبيق".');
             }
         });
 
@@ -284,7 +284,7 @@ HTML_LAYOUT = """
             } catch (e) { window.open(url, '_blank'); }
         }
 
-        // ميزة جلب المعزوفة الأصلية
+        // البحث عن الأغنية الأصلية (خاص للتيك توك)
         async function fetchFullAudio(trackName, btnElement) {
             const origHTML = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري البحث...';
@@ -311,9 +311,11 @@ HTML_LAYOUT = """
             setTimeout(() => { btnElement.innerHTML = origHTML; btnElement.style.background = ''; btnElement.disabled = false; }, 3000);
         }
 
-        // ميزة GIF تعمل حصراً للتيك توك
+        // محرر GIF (محمي من الأعطال ويعمل للتيك توك فقط)
         function toggleGifEditor(containerId, duration) {
             const editor = document.querySelector(`#${containerId} .gif-editor`); 
+            if (!editor) return;
+            
             editor.style.display = editor.style.display === 'block' ? 'none' : 'block';
             const sliderDiv = editor.querySelector('.timeSlider');
             if(!sliderDiv.noUiSlider) {
@@ -344,7 +346,6 @@ HTML_LAYOUT = """
             }
         }
 
-        // توجيه الطلبات للسيرفرات المعزولة
         async function processClientRequest(platform) {
             const val = document.getElementById('input-' + platform).value.trim(); 
             if(!val) return;
@@ -360,7 +361,7 @@ HTML_LAYOUT = """
             statusMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المعزول...';
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
 
-            // التوجيه المعزول بالخلفية
+            // تحديد مسار الباك-إند حسب المنصة
             let apiEndpoint = `/api/${platform}`;
 
             try {
@@ -379,7 +380,7 @@ HTML_LAYOUT = """
                     let internalAudPlay = useProxy ? `/proxy_stream?url=${encodeURIComponent(res.audio_url)}&ext=mp3` : res.audio_url;
                     let absoluteQrUrl = useProxy ? (window.location.origin + internalVidPlay) : res.video_url;
 
-                    renderMediaResult(res.title, res.thumbnail, internalVidPlay, internalAudPlay, absoluteQrUrl, res.duration || 15, platform, 'res-' + platform, res.track_name);
+                    renderMediaResult(res.title, res.thumbnail, internalVidPlay, internalAudPlay, absoluteQrUrl, res.duration || 15, platform, 'res-' + platform, res.track_name, res.is_pure_audio);
                 } else {
                     statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${res.error}`;
                     statusMsg.style.color = '#ef4444';
@@ -390,8 +391,8 @@ HTML_LAYOUT = """
             }
         }
 
-        // بناء واجهة النتائج
-        function renderMediaResult(title, thumbnail, vidUrl, audUrl, qrUrl, duration, platform, containerId, trackName) {
+        // بناء الواجهة مع حل مشكلة زر الصوت
+        function renderMediaResult(title, thumbnail, vidUrl, audUrl, qrUrl, duration, platform, containerId, trackName, isPureAudio) {
             const mediaBox = document.querySelector(`#${containerId} .media-box`); 
             activeTitle = title.replace(/[^a-zA-Z0-9]/g, '_') || 'Tahmilati_Media'; 
             globalVideoUrl = vidUrl;
@@ -406,7 +407,15 @@ HTML_LAYOUT = """
                 </div>`;
             }
 
-            // محرر الـ GIF مخصص للتيك توك فقط بناء على طلبك
+            // زر الصوت يظهر حسب توفر الصوت الصافي الحقيقي (MP3)
+            let audBtnHtml = '';
+            if (isPureAudio !== false) {
+                audBtnHtml = `<button onclick="forceAutoDownload('${audUrl}', '${activeTitle}.mp3')" class="btn-action bg-mp3"><i class="fas fa-music"></i> استخراج الصوت (MP3)</button>`;
+            } else {
+                audBtnHtml = `<button class="btn-action bg-mp3" disabled style="opacity:0.6; cursor:not-allowed;"><i class="fas fa-microphone-slash"></i> الصوت منفصل غير متاح</button>`;
+            }
+
+            // محرر الـ GIF مخصص فقط للتيك توك
             let gifHtml = '';
             if (platform === 'tiktok') {
                 gifHtml = `
@@ -439,7 +448,7 @@ HTML_LAYOUT = """
                         <button onclick="showQR('${qrUrl}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
                     </div>
                     <div class="btn-row">
-                        <button onclick="forceAutoDownload('${audUrl}', '${activeTitle}.mp3')" class="btn-action bg-mp3"><i class="fas fa-music"></i> استخراج الصوت (MP3)</button>
+                        ${audBtnHtml}
                     </div>
                 </div>
                 ${gifHtml}
@@ -470,7 +479,7 @@ HTML_LAYOUT = """
 """
 
 # ==============================================================================
-# Backend Routes - Isolated Servers & PWA
+# Backend Routes - Isolated Servers & Real Audio Handlers
 # ==============================================================================
 
 @app.route('/manifest.json')
@@ -494,6 +503,10 @@ def service_worker():
 def home():
     return render_template_string(HTML_LAYOUT)
 
+@app.route('/ping')
+def ping_server():
+    return "OK", 200
+
 @app.route('/api/full_audio', methods=['POST'])
 def search_full_audio():
     track_name = request.json.get('track_name')
@@ -508,7 +521,7 @@ def search_full_audio():
     return jsonify({"success": False})
 
 # ---------------------------------------------------------
-# الغرفة المعزولة رقم 1: تيك توك (TikWM API)
+# الغرفة المعزولة 1: تيك توك
 # ---------------------------------------------------------
 @app.route('/api/tiktok', methods=['POST'])
 def process_tiktok():
@@ -522,33 +535,37 @@ def process_tiktok():
                 "success": True, "title": v.get('title', 'مقطع تيك توك'),
                 "thumbnail": v.get('cover', 'https://via.placeholder.com/150'),
                 "video_url": v.get('play'), "audio_url": v.get('music'), 
-                "duration": v.get('duration', 15), "track_name": track_name
+                "is_pure_audio": True, "duration": v.get('duration', 15), "track_name": track_name
             })
         return jsonify({"success": False, "error": "المقطع محذوف أو خاص."})
     except Exception as e:
         return jsonify({"success": False, "error": "فشل الاتصال بسيرفر تيك توك."})
 
 # ---------------------------------------------------------
-# الغرفة المعزولة رقم 2: إنستغرام (Cobalt + yt-dlp)
+# الغرفة المعزولة 2: إنستغرام
 # ---------------------------------------------------------
 @app.route('/api/insta', methods=['POST'])
 def process_insta():
     url = request.json.get('url', '').strip()
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    # محاولة 1: Cobalt
+    
+    # 1. محاولة Cobalt (يسحب الصوت بشكل حقيقي منفصل)
     try:
-        r_vid = requests.post("https://co.wuk.sh/api/json", json={"url": url}, headers=headers, timeout=12)
+        r_vid = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=12)
         if r_vid.status_code == 200 and r_vid.json().get('url'):
             vid_url = r_vid.json()['url']
             aud_url = vid_url
+            is_pure_audio = False
             try:
-                r_aud = requests.post("https://co.wuk.sh/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=8)
-                if r_aud.status_code == 200 and r_aud.json().get('url'): aud_url = r_aud.json()['url']
+                r_aud = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=8)
+                if r_aud.status_code == 200 and r_aud.json().get('url'): 
+                    aud_url = r_aud.json()['url']
+                    is_pure_audio = True # تم استخراج الصوت الصافي بنجاح!
             except: pass
-            return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "duration": 15})
+            return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "is_pure_audio": is_pure_audio, "duration": 15})
     except: pass
     
-    # محاولة 2: yt-dlp (المحرك الاحتياطي الأقوى للروابط العامة)
+    # 2. محاولة yt-dlp 
     try:
         ydl_opts = {'quiet': True, 'no_warnings': True, 'socket_timeout': 15, 'format': 'best'}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -557,18 +574,44 @@ def process_insta():
             if not video_url and 'formats' in info:
                 v_formats = [f for f in info['formats'] if f.get('vcodec') != 'none']
                 if v_formats: video_url = v_formats[-1]['url']
+            
+            audio_url = video_url
+            is_pure_audio = False
+            a_formats = [f for f in info.get('formats', []) if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
+            if a_formats:
+                audio_url = a_formats[-1]['url']
+                is_pure_audio = True
+
             if video_url:
-                return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": video_url, "duration": info.get('duration', 15)})
+                return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
     except: pass
     return jsonify({"success": False, "error": "المنصة تمنع الوصول (تأكد أن الحساب عام Public)."})
 
 # ---------------------------------------------------------
-# الغرفة المعزولة رقم 3: فيسبوك (yt-dlp + Cobalt)
+# الغرفة المعزولة 3: فيسبوك
 # ---------------------------------------------------------
 @app.route('/api/facebook', methods=['POST'])
 def process_facebook():
     url = request.json.get('url', '').strip()
-    # محاولة yt-dlp (أفضل محرك للفيس بوك حالياً)
+    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+    
+    # 1. محاولة Cobalt للفيس بوك (أفضل محرك لتخطي الكوكيز)
+    try:
+        r_vid = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=12)
+        if r_vid.status_code == 200 and r_vid.json().get('url'):
+            vid_url = r_vid.json()['url']
+            aud_url = vid_url
+            is_pure_audio = False
+            try:
+                r_aud = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=8)
+                if r_aud.status_code == 200 and r_aud.json().get('url'): 
+                    aud_url = r_aud.json()['url']
+                    is_pure_audio = True
+            except: pass
+            return jsonify({"success": True, "title": "مقطع فيسبوك", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "is_pure_audio": is_pure_audio, "duration": 15})
+    except: pass
+
+    # 2. محاولة yt-dlp
     try:
         ydl_opts = {'quiet': True, 'no_warnings': True, 'socket_timeout': 15, 'format': 'best', 'extractor_args': {'facebook': {'player_client': ['android', 'ios']}}}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -577,13 +620,21 @@ def process_facebook():
             if not video_url and 'formats' in info:
                 v_formats = [f for f in info['formats'] if f.get('vcodec') != 'none']
                 if v_formats: video_url = v_formats[-1]['url']
+            
+            audio_url = video_url
+            is_pure_audio = False
+            a_formats = [f for f in info.get('formats', []) if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
+            if a_formats:
+                audio_url = a_formats[-1]['url']
+                is_pure_audio = True
+
             if video_url:
-                return jsonify({"success": True, "title": info.get('title', 'مقطع فيسبوك'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": video_url, "duration": info.get('duration', 15)})
+                return jsonify({"success": True, "title": info.get('title', 'مقطع فيسبوك'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
     except: pass
-    return jsonify({"success": False, "error": "تعذر السحب من فيسبوك."})
+    return jsonify({"success": False, "error": "تعذر السحب من فيسبوك. تأكد أن المقطع عام (Public)."})
 
 # ---------------------------------------------------------
-# الغرفة المعزولة رقم 4: التحميل العام (yt-dlp)
+# الغرفة المعزولة 4: التحميل العام
 # ---------------------------------------------------------
 @app.route('/api/general', methods=['POST'])
 def process_general():
@@ -596,14 +647,19 @@ def process_general():
             if not video_url and 'formats' in info:
                 v_formats = [f for f in info['formats'] if f.get('vcodec') != 'none']
                 if v_formats: video_url = v_formats[-1]['url']
+            
+            audio_url = video_url
+            is_pure_audio = False
+            a_formats = [f for f in info.get('formats', []) if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
+            if a_formats:
+                audio_url = a_formats[-1]['url']
+                is_pure_audio = True
+
             if video_url:
-                return jsonify({"success": True, "title": info.get('title', 'ملف مستخرج'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": video_url, "duration": info.get('duration', 15)})
+                return jsonify({"success": True, "title": info.get('title', 'ملف مستخرج'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
     except Exception as e: pass
     return jsonify({"success": False, "error": "تعذر السحب للرابط العام."})
 
-# ---------------------------------------------------------
-# دالة البروكسي (لمنع أخطاء CORS وتأمين التحميل)
-# ---------------------------------------------------------
 @app.route('/proxy_stream')
 def proxy_stream():
     target_url = request.args.get('url')
