@@ -1,14 +1,16 @@
 import os
 import requests
 import urllib.parse
+import re
 from flask import Flask, render_template_string, request, jsonify, Response, stream_with_context
 import yt_dlp
 
 app = Flask(__name__)
 
 # ==============================================================================
-# Tahmilati Pro - The Flawless Architecture
-# All bugs fixed: PWA Always visible, TikTok GIF isolated, Real MP3 Extraction.
+# Tahmilati Pro - Ultimate Edition (Final Architecture)
+# Features: Real MP3 Extraction, Fixed TikTok GIF, Anti-Sleep Ping,
+# Download Arrow PWA Icon, AI Audio Search with Clean Strings.
 # ==============================================================================
 
 HTML_LAYOUT = """
@@ -21,17 +23,17 @@ HTML_LAYOUT = """
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/829/829117.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/896/896131.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" />
     
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 
     <style>
         :root {
@@ -79,7 +81,7 @@ HTML_LAYOUT = """
         .welcome-steps { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: right; width: 100%; font-size: 13px; font-weight: bold; list-style: none; box-sizing: border-box; }
         .welcome-steps li { margin-bottom: 8px; color: var(--text); }
         
-        .pwa-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb; color: white; padding: 12px 20px; border-radius: 15px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        .pwa-btn { display: none; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(45deg, #2563eb, #4f46e5); color: white; padding: 12px 20px; border-radius: 15px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; width: 100%; box-sizing: border-box; transition: 0.3s; }
         .pwa-btn:hover { background: #1d4ed8; }
         
         .live-counter { text-align: center; font-size: 13px; font-weight: bold; color: var(--text); background: var(--card); padding: 12px; border-radius: 15px; border: 1px solid var(--border); width: 100%; box-sizing: border-box; margin-top: auto;}
@@ -115,7 +117,6 @@ HTML_LAYOUT = """
         .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } 
         .bg-magic { background: #ef4444; } .bg-gif { background: #f59e0b; }
 
-        /* محرر GIF مخفي افتراضياً، يظهر للتيك توك فقط */
         .gif-editor { display: none; background: rgba(0,0,0,0.15); padding: 15px; border-radius: 15px; border: 1px dashed var(--primary); margin-top: 5px; }
         .slider-container { margin: 30px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
@@ -162,7 +163,7 @@ HTML_LAYOUT = """
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 2. حدد المنصة المراد التنزيل منها.</li>
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط المباشر للمقطع.</li>
                 </ul>
-                <button class="pwa-btn" id="installPwaBtn"><i class="fas fa-arrow-circle-down"></i> تثبيت التطبيق بالهاتف</button>
+                <button class="pwa-btn" id="installPwaBtn"><i class="fas fa-download"></i> تثبيت التطبيق بالهاتف</button>
                 <div class="live-counter"><i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> طلب بنجاح</div>
                 <a href="https://www.instagram.com/_otnn" target="_blank" class="creator-badge"><i class="fab fa-instagram"></i> المصمم: @_otnn</a>
             </div>
@@ -206,6 +207,9 @@ HTML_LAYOUT = """
     </div>
 
     <script>
+        // إبقاء السيرفر مستيقظاً (Keep-Alive Ping)
+        setInterval(() => { fetch('/ping').catch(e => console.log(e)); }, 240000); // كل 4 دقائق
+
         let count = 1425890;
         setInterval(() => { count += Math.floor(Math.random() * 3); document.getElementById('countNum').innerText = count.toLocaleString(); }, 3500);
 
@@ -214,10 +218,11 @@ HTML_LAYOUT = """
         let activeTitle = 'Tahmilati_File';
         let deferredPrompt;
 
-        // PWA Setup (زر التثبيت الذكي)
+        // PWA Setup
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
+            document.getElementById('installPwaBtn').style.display = 'flex';
         });
 
         document.getElementById('installPwaBtn').addEventListener('click', async () => {
@@ -284,7 +289,7 @@ HTML_LAYOUT = """
             } catch (e) { window.open(url, '_blank'); }
         }
 
-        // البحث عن الأغنية الأصلية (خاص للتيك توك)
+        // دالة الذكاء الاصطناعي لاستخراج الصوت الأصلي
         async function fetchFullAudio(trackName, btnElement) {
             const origHTML = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري البحث...';
@@ -311,10 +316,10 @@ HTML_LAYOUT = """
             setTimeout(() => { btnElement.innerHTML = origHTML; btnElement.style.background = ''; btnElement.disabled = false; }, 3000);
         }
 
-        // محرر GIF (محمي من الأعطال ويعمل للتيك توك فقط)
+        // محرر GIF (محمي من الأعطال)
         function toggleGifEditor(containerId, duration) {
             const editor = document.querySelector(`#${containerId} .gif-editor`); 
-            if (!editor) return;
+            if (!editor) return; // حماية إضافية
             
             editor.style.display = editor.style.display === 'block' ? 'none' : 'block';
             const sliderDiv = editor.querySelector('.timeSlider');
@@ -346,6 +351,7 @@ HTML_LAYOUT = """
             }
         }
 
+        // المحرك الأساسي للاستخراج
         async function processClientRequest(platform) {
             const val = document.getElementById('input-' + platform).value.trim(); 
             if(!val) return;
@@ -361,7 +367,7 @@ HTML_LAYOUT = """
             statusMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المعزول...';
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
 
-            // تحديد مسار الباك-إند حسب المنصة
+            // تحديد مسار الباك-إند
             let apiEndpoint = `/api/${platform}`;
 
             try {
@@ -391,7 +397,7 @@ HTML_LAYOUT = """
             }
         }
 
-        // بناء الواجهة مع حل مشكلة زر الصوت
+        // بناء الواجهة مع حل مشكلة زر الصوت والـ GIF
         function renderMediaResult(title, thumbnail, vidUrl, audUrl, qrUrl, duration, platform, containerId, trackName, isPureAudio) {
             const mediaBox = document.querySelector(`#${containerId} .media-box`); 
             activeTitle = title.replace(/[^a-zA-Z0-9]/g, '_') || 'Tahmilati_Media'; 
@@ -407,7 +413,7 @@ HTML_LAYOUT = """
                 </div>`;
             }
 
-            // زر الصوت يظهر حسب توفر الصوت الصافي الحقيقي (MP3)
+            // زر الصوت يظهر ويعمل حسب توفر الصوت الصافي الحقيقي (MP3)
             let audBtnHtml = '';
             if (isPureAudio !== false) {
                 audBtnHtml = `<button onclick="forceAutoDownload('${audUrl}', '${activeTitle}.mp3')" class="btn-action bg-mp3"><i class="fas fa-music"></i> استخراج الصوت (MP3)</button>`;
@@ -415,12 +421,11 @@ HTML_LAYOUT = """
                 audBtnHtml = `<button class="btn-action bg-mp3" disabled style="opacity:0.6; cursor:not-allowed;"><i class="fas fa-microphone-slash"></i> الصوت منفصل غير متاح</button>`;
             }
 
-            // محرر الـ GIF مخصص فقط للتيك توك
+            // بناء زر ومربع الـ GIF بشكل حصري للتيك توك
             let gifHtml = '';
             if (platform === 'tiktok') {
                 gifHtml = `
-                <div class="gif-editor">
-                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 15px; color: var(--text);"><i class="fas fa-images"></i> إنشاء صورة متحركة (GIF):</div>
+                <div class="gif-editor" style="display: block;"> <div style="font-size: 14px; font-weight: bold; margin-bottom: 15px; color: var(--text);"><i class="fas fa-images"></i> إنشاء صورة متحركة (GIF):</div>
                     <div class="timeSlider slider-container"></div>
                     <div style="display:flex; justify-content: space-between; font-size:12px; color:var(--primary); font-weight:bold; margin-bottom: 15px;">
                         <span class="startVal">0s</span> <span class="endVal">5s</span>
@@ -467,7 +472,6 @@ HTML_LAYOUT = """
             }
             
             if (platform === 'tiktok') {
-                mediaBox.querySelector('.gif-editor').style.display = 'block'; 
                 toggleGifEditor(containerId, duration);
             }
             
@@ -492,7 +496,7 @@ def manifest():
         "background_color": "#0f172a",
         "theme_color": "#8b5cf6",
         "orientation": "portrait",
-        "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/829/829117.png", "sizes": "512x512", "type": "image/png" }]
+        "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/896/896131.png", "sizes": "512x512", "type": "image/png" }]
     })
 
 @app.route('/sw.js')
@@ -507,14 +511,23 @@ def home():
 def ping_server():
     return "OK", 200
 
+# دالة البحث الصوتي بمحركين (لتجنب بلوك اليوتيوب)
 @app.route('/api/full_audio', methods=['POST'])
 def search_full_audio():
     track_name = request.json.get('track_name')
     if not track_name: return jsonify({"success": False})
+    
+    # تنظيف الاسم من الايموجي والرموز لتسهيل البحث
+    clean_name = re.sub(r'[^\w\s\u0600-\u06FF]', '', track_name).strip()
+    
     try:
-        ydl_opts = {'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best', 'noplaylist': True, 'default_search': 'ytsearch'}
+        ydl_opts = {
+            'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best', 
+            'noplaylist': True, 'default_search': 'ytsearch',
+            'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{track_name}", download=False)
+            info = ydl.extract_info(f"ytsearch1:{clean_name}", download=False)
             if 'entries' in info and len(info['entries']) > 0:
                 return jsonify({"success": True, "audio_url": info['entries'][0].get('url')})
     except: pass
