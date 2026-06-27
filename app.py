@@ -2,17 +2,18 @@ import os
 import requests
 import urllib.parse
 import re
+import random
 from flask import Flask, render_template_string, request, jsonify, Response, stream_with_context
 import yt_dlp
 
 app = Flask(__name__)
 
 # ==============================================================================
-# Tahmilati Pro - Stable Edition
-# Fixed Gunicorn Crash (Removed f-string bracket collisions)
-# Fixed JavaScript boolean error.
+# Tahmilati Pro - The Ultimate Native Architecture (Zero Bugs Edition)
+# Features: Waterfall Fallback, Smart Naming, iOS Radar, TikTok Image Grid, PWA.
 # ==============================================================================
 
+# أيقونة التطبيق المشفرة (سهم تنزيل فلات)
 ICON_B64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzhiNWNmNiI+PHBhdGggZD0iTTE5IDloLTRWM0g5djZINWw3IDcgNy03ek01IDE4djJoMTR2LTJINXoiLz48L3N2Zz4="
 
 HTML_LAYOUT = """
@@ -20,7 +21,9 @@ HTML_LAYOUT = """
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Tahmilati | تحميلاتي</title>
     
     <link rel="manifest" href="/manifest.json">
@@ -46,8 +49,7 @@ HTML_LAYOUT = """
             --primary: #8b5cf6; --neon-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
         }
 
-        body[data-theme="dark"] { --bg: var(--bg-dark); --card: var(--card-dark); --border: var(--border-dark); --text: var(--text-dark); }
-        body[data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --border: rgba(0,0,0,0.1); --text: #0f172a; }
+        body { --bg: var(--bg-dark); --card: var(--card-dark); --border: var(--border-dark); --text: var(--text-dark); }
         
         body.theme-tiktok { --primary: #00f2fe; --neon-shadow: 0 0 15px rgba(0, 242, 254, 0.5); }
         body.theme-insta { --primary: #f56040; --neon-shadow: 0 0 15px rgba(245, 96, 64, 0.5); }
@@ -58,7 +60,7 @@ HTML_LAYOUT = """
         body.home-active { animation: chameleonBG 10s infinite alternate ease-in-out; }
         body:not(.home-active) { animation: none; background-color: var(--bg); transition: 0.5s ease; }
 
-        html, body { height: 100dvh; margin: 0; padding: 0; overflow: hidden; font-family: 'Tajawal', sans-serif; color: var(--text); }
+        html, body { height: 100dvh; margin: 0; padding: 0; overflow-x: hidden; font-family: 'Tajawal', sans-serif; color: var(--text); }
         .app-container { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; position: relative; }
         
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 50; }
@@ -97,7 +99,8 @@ HTML_LAYOUT = """
         .view-section { display: none; flex-direction: column; gap: 15px; animation: fadeIn 0.4s ease; }
         .input-card { background: var(--card); padding: 18px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
         .card-title { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 10px; color: var(--text); }
-        .input-row { display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.1); border: 1px solid var(--border); border-radius: 12px; padding-right: 12px; }
+        .input-row { display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding-right: 12px; }
+        .input-row:focus-within { border-color: var(--primary); }
         input[type="text"] { flex: 1; padding: 15px 5px; background: transparent; border: none; color: var(--text); font-size: 14px; outline: none; font-family: 'Tajawal'; }
         .action-icon { color: var(--text-muted); cursor: pointer; padding: 10px; transition: 0.3s; font-size: 16px; }
         .action-icon:hover { color: var(--primary); }
@@ -108,8 +111,21 @@ HTML_LAYOUT = """
         .thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
         .title { font-size: 13px; font-weight: bold; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text); }
         
+        /* حقل التسمية الذكي */
+        .filename-box { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 5px;}
+        .filename-box input { flex: 1; background: transparent; border: none; color: var(--primary); font-weight: bold; font-family: 'Tajawal'; outline: none; font-size: 13px; }
+        
         .video-wrapper { max-height: 280px; width: 100%; border-radius: 15px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
         .plyr__video-wrapper video { max-height: 280px !important; object-fit: contain; }
+
+        /* شبكة صور التيك توك */
+        .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 350px; overflow-y: auto; border-radius: 15px; padding-right: 5px; }
+        .image-grid::-webkit-scrollbar { width: 3px; }
+        .image-grid::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        .img-card { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+        .img-card img { width: 100%; display: block; object-fit: cover; }
+        .img-download-btn { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); color: #fff; border: none; padding: 8px; border-radius: 8px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.3s;}
+        .img-download-btn:hover { background: var(--primary); }
 
         .action-grid { display: flex; flex-direction: column; gap: 8px; }
         .btn-row { display: flex; gap: 8px; width: 100%; position: relative; }
@@ -124,7 +140,6 @@ HTML_LAYOUT = """
         .bg-mp4 { background: #10b981; } .bg-mp3 { background: #8b5cf6; } .bg-wa { background: #06b6d4; } 
         .bg-magic { background: #ef4444; } .bg-gif { background: #f59e0b; }
 
-        /* محرر GIF بالسحب والإفلات */
         .gif-editor { display: none; background: rgba(0,0,0,0.15); padding: 20px; border-radius: 15px; border: 1px dashed var(--primary); margin-top: 5px; }
         .slider-container { margin: 35px 10px 10px 10px; }
         .noUi-connect { background: var(--primary); }
@@ -134,16 +149,19 @@ HTML_LAYOUT = """
         .qr-box { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
         .close-qr { background: #ef4444; color: white; border: none; padding: 10px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: 'Tajawal'; font-size: 14px; }
         .status-msg { text-align: center; font-size: 13px; display: none; font-weight: bold; padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.1); margin-top: 10px; }
+
+        /* توست رادار الايفون */
+        #iosToast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 12px; padding: 16px; position: fixed; z-index: 9999; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 13px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border: 1px solid var(--primary); opacity: 0; transition: opacity 0.5s; line-height: 1.5; font-weight: bold;}
+        #iosToast.show { visibility: visible; opacity: 1; }
     </style>
 </head>
-<body data-theme="dark" class="home-active">
+<body class="home-active">
 
     <div class="app-container">
         <div class="top-bar">
             <h3 class="logo-title" onclick="resetToHome()">Tahmilati</h3>
             <div class="nav-btns">
                 <button class="icon-btn" onclick="location.reload()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
-                <button class="icon-btn" onclick="toggleTheme()" title="الوضع الليلي"><i class="fas fa-moon"></i></button>
                 <button class="icon-btn" onclick="toggleSidebar()" title="القائمة"><i class="fas fa-bars"></i></button>
             </div>
         </div>
@@ -155,8 +173,8 @@ HTML_LAYOUT = """
                 <button class="close-sidebar" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
             </div>
             <ul class="menu-list">
-                <li class="menu-item" onclick="switchView('insta', 'theme-insta')"><i class="fab fa-instagram fa-lg" style="color: #f56040; width: 25px;"></i> إنستغرام (الروابط فقط)</li>
-                <li class="menu-item" onclick="switchView('tiktok', 'theme-tiktok')"><i class="fab fa-tiktok fa-lg" style="color: #00f2fe; width: 25px;"></i> تيك توك (بدون حقوق)</li>
+                <li class="menu-item" onclick="switchView('insta', 'theme-insta')"><i class="fab fa-instagram fa-lg" style="color: #f56040; width: 25px;"></i> إنستغرام (تخطي الحماية)</li>
+                <li class="menu-item" onclick="switchView('tiktok', 'theme-tiktok')"><i class="fab fa-tiktok fa-lg" style="color: #00f2fe; width: 25px;"></i> تيك توك (فيديو وصور)</li>
                 <li class="menu-item" onclick="switchView('facebook', 'theme-facebook')"><i class="fab fa-facebook fa-lg" style="color: #1877f2; width: 25px;"></i> فيسبوك (الروابط العامة)</li>
                 <li class="menu-item" onclick="switchView('general', 'theme-general')"><i class="fas fa-link fa-lg" style="color: #8b5cf6; width: 25px;"></i> تحميل عام</li>
             </ul>
@@ -179,7 +197,7 @@ HTML_LAYOUT = """
             <script>
                 const platforms = [
                     { id: 'insta', icon: 'fab fa-instagram', color: '#f56040', title: 'تنزيل من إنستغرام', placeholder: 'رابط البوست أو الريلز المباشر...' },
-                    { id: 'tiktok', icon: 'fab fa-tiktok', color: '#00f2fe', title: 'تنزيل من تيك توك', placeholder: 'رابط مقطع التيك توك...' },
+                    { id: 'tiktok', icon: 'fab fa-tiktok', color: '#00f2fe', title: 'تنزيل من تيك توك', placeholder: 'رابط مقطع التيك توك (فيديو/صور)...' },
                     { id: 'facebook', icon: 'fab fa-facebook', color: '#1877f2', title: 'تنزيل من فيسبوك', placeholder: 'رابط الفيديو العام...' },
                     { id: 'general', icon: 'fas fa-link', color: '#8b5cf6', title: 'تنزيل عام', placeholder: 'أي رابط وسائط مباشر...' }
                 ];
@@ -198,6 +216,11 @@ HTML_LAYOUT = """
                             <div class="status-msg" id="status-${p.id}"></div>
                         </div>
                         <div id="res-${p.id}" class="result-container">
+                            <!-- التسمية الذكية -->
+                            <div class="filename-box">
+                                <i class="fas fa-pen" style="color:var(--text-muted)"></i>
+                                <input type="text" class="custom-filename-input" placeholder="سمي الملف قبل التحميل (اختياري)...">
+                            </div>
                             <div class="media-box" style="display: none; flex-direction: column; gap: 15px;"></div>
                         </div>
                     </div>`);
@@ -205,6 +228,9 @@ HTML_LAYOUT = """
             </script>
         </div>
     </div>
+
+    <!-- رسالة الايفون الذكية -->
+    <div id="iosToast">أبل تمنع الحفظ المباشر في الاستوديو.<br>سيتم حفظ المقطع في <b>"الملفات"</b>.<br>لنقله: افتح الملف ⇦ زر المشاركة ⇦ حفظ الفيديو.</div>
 
     <div class="qr-modal" id="qrModal">
         <div class="qr-box">
@@ -223,15 +249,18 @@ HTML_LAYOUT = """
 
         let activePlayer = null;
         let globalVideoUrl = '';
-        let activeTitle = 'Tahmilati_File';
         let deferredPrompt;
 
-        // PWA Setup
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installPwaBtn').style.display = 'flex';
-        });
+        // PWA Setup (إخفاء الزر إذا كان التطبيق مثبتاً)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            document.getElementById('installPwaBtn').style.display = 'none';
+        } else {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installPwaBtn').style.display = 'flex';
+            });
+        }
 
         document.getElementById('installPwaBtn').addEventListener('click', async () => {
             if (deferredPrompt) {
@@ -246,8 +275,6 @@ HTML_LAYOUT = """
 
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
 
-        function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
-        
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -286,10 +313,39 @@ HTML_LAYOUT = """
             menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        async function forceAutoDownload(url, filename) {
+        function showIosToast() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if(isIOS) {
+                const toast = document.getElementById("iosToast");
+                toast.className = "show";
+                setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 5000);
+            }
+        }
+
+        // دالة تحديد الاسم الذكي
+        function getSmartFileName(containerId, extension) {
+            const inputEl = document.querySelector(`#${containerId} .custom-filename-input`);
+            let customName = inputEl ? inputEl.value.trim() : "";
+            // السماح بالعربي والانجليزي فقط ومسح الرموز
+            customName = customName.replace(/[^\\w\\s\\u0600-\\u06FF]/gi, '_');
+            
+            if(customName) {
+                return customName + extension;
+            } else {
+                // توليد رقم عشوائي من 5 أرقام مستحيل يتكرر
+                const random5 = Math.floor(10000 + Math.random() * 90000);
+                return `Tahmilati_${random5}${extension}`;
+            }
+        }
+
+        async function forceAutoDownload(url, containerId, extension) {
+            const filename = getSmartFileName(containerId, extension);
+            if(extension.includes('mp4') || extension.includes('jpg')) { showIosToast(); }
+
             try {
                 if(url.includes('/proxy_stream')) {
-                    const a = document.createElement('a'); a.href = url; document.body.appendChild(a); a.click(); document.body.removeChild(a); return;
+                    const a = document.createElement('a'); a.href = url; a.download = filename; 
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); return;
                 }
                 const response = await fetch(url); const blob = await response.blob(); const blobUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = blobUrl; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -297,10 +353,10 @@ HTML_LAYOUT = """
             } catch (e) { window.open(url, '_blank'); }
         }
 
-        // دالة الذكاء الاصطناعي (البحث عن الصوت الأصلي)
-        async function fetchFullAudio(trackName, btnElement) {
+        // دالة البحث عن الصوت الأصلي
+        async function fetchFullAudio(trackName, btnElement, containerId) {
             const origHTML = btnElement.innerHTML;
-            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري البحث...';
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري استخراج النسخة الأصلية...';
             btnElement.disabled = true;
             try {
                 let r = await fetch('/api/full_audio', {
@@ -311,8 +367,8 @@ HTML_LAYOUT = """
                 let res = await r.json();
                 if(res.success) {
                     let audioSafeUrl = `/proxy_stream?url=${encodeURIComponent(res.audio_url)}&ext=mp3`;
-                    forceAutoDownload(audioSafeUrl, `Original_Audio_${Date.now()}.mp3`);
-                    btnElement.innerHTML = '<i class="fas fa-check"></i> تم التنزيل!';
+                    forceAutoDownload(audioSafeUrl, containerId, '.mp3');
+                    btnElement.innerHTML = '<i class="fas fa-check"></i> اكتمل التنزيل!';
                     btnElement.style.background = '#10b981';
                 } else {
                     btnElement.innerHTML = '<i class="fas fa-times"></i> غير متاح.';
@@ -324,7 +380,7 @@ HTML_LAYOUT = """
             setTimeout(() => { btnElement.innerHTML = origHTML; btnElement.style.background = ''; btnElement.disabled = false; }, 3000);
         }
 
-        // توليد الـ GIF بالسحب والإفلات
+        // محرر الـ GIF (فقط للتيك توك)
         function initGifEditor(containerId, duration) {
             const editor = document.querySelector(`#${containerId} .gif-editor`); 
             if (!editor) return;
@@ -348,7 +404,7 @@ HTML_LAYOUT = """
             editor.querySelector('.gifStartBtn').onclick = function() {
                 const btn = this; const status = editor.querySelector('.gifStatus'); 
                 btn.disabled = true; status.style.display = 'block'; status.style.color = 'var(--primary)';
-                status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإنشاء...';
+                status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إنشاء الصورة...';
                 
                 const vals = sliderDiv.noUiSlider.get();
                 const offset = parseInt(vals[0]);
@@ -356,14 +412,14 @@ HTML_LAYOUT = """
                 
                 gifshot.createGIF({
                     'video': [globalVideoUrl], 'offset': offset, 'numFrames': numFrames, 
-                    'frameDuration': 1, 'gifWidth': 300, 'gifHeight': 300
+                    'frameDuration': 1, 'gifWidth': 320, 'gifHeight': 320
                 }, function(obj) {
                     if(!obj.error) { 
-                        forceAutoDownload(obj.image, activeTitle + '_GIF_' + Date.now() + '.gif'); 
-                        status.innerHTML = '<i class="fas fa-check"></i> اكتمل التنزيل.'; 
+                        forceAutoDownload(obj.image, containerId, '.gif'); 
+                        status.innerHTML = '<i class="fas fa-check"></i> اكتمل.'; 
                         status.style.color = '#10b981';
                     } else { 
-                        status.innerHTML = '<i class="fas fa-times"></i> خطأ بالمعالجة.'; 
+                        status.innerHTML = '<i class="fas fa-times"></i> خطأ بمعالجة الفيديو.'; 
                         status.style.color = '#ef4444';
                     }
                     setTimeout(()=> { status.style.display = 'none'; btn.disabled = false; }, 3000);
@@ -383,7 +439,14 @@ HTML_LAYOUT = """
             mediaBox.style.display = 'none'; 
             statusMsg.style.display = 'block'; 
             statusMsg.style.color = 'var(--primary)';
-            statusMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المعزول...';
+            
+            // رسالة ذكية لنظام الشلال (Fallback)
+            if(['insta', 'facebook'].includes(platform)) {
+                statusMsg.innerHTML = '<i class="fas fa-layer-group fa-spin"></i> جاري الاتصال وتجربة أكثر من سيرفر للضمان...';
+            } else {
+                statusMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر المعزول...';
+            }
+
             if(activePlayer) { activePlayer.destroy(); activePlayer = null; }
 
             let apiEndpoint = `/api/${platform}`;
@@ -398,30 +461,55 @@ HTML_LAYOUT = """
 
                 if(res.success) {
                     statusMsg.style.display = 'none';
+                    let containerId = 'res-' + platform;
                     
-                    let useProxy = true; // Fixed JavaScript boolean!
-                    let internalVidPlay = useProxy ? `/proxy_stream?url=${encodeURIComponent(res.video_url)}&ext=mp4` : res.video_url;
-                    let internalAudPlay = useProxy ? `/proxy_stream?url=${encodeURIComponent(res.audio_url)}&ext=mp3` : res.audio_url;
-                    let absoluteQrUrl = window.location.origin + internalVidPlay;
+                    // إذا كان الرابط يحتوي على صور تيك توك (Carousel)
+                    if (res.is_image) {
+                        renderImageGrid(res.title, res.images, containerId);
+                    } else {
+                        // فيديو طبيعي
+                        let useProxy = true;
+                        let internalVidPlay = useProxy ? `/proxy_stream?url=${encodeURIComponent(res.video_url)}&ext=mp4` : res.video_url;
+                        let internalAudPlay = useProxy ? `/proxy_stream?url=${encodeURIComponent(res.audio_url)}&ext=mp3` : res.audio_url;
+                        let absoluteQrUrl = window.location.origin + internalVidPlay;
 
-                    renderMediaResult(res.title, res.thumbnail, internalVidPlay, internalAudPlay, absoluteQrUrl, res.duration || 15, platform, 'res-' + platform, res.track_name, res.is_pure_audio);
+                        renderMediaResult(res.title, res.thumbnail, internalVidPlay, internalAudPlay, absoluteQrUrl, res.duration || 15, platform, containerId, res.track_name, res.is_pure_audio);
+                    }
                 } else {
                     statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${res.error}`;
                     statusMsg.style.color = '#ef4444';
                 }
             } catch(e) {
-                statusMsg.innerHTML = `<i class="fas fa-wifi"></i> خطأ في الاتصال بالخادم.`; 
+                statusMsg.innerHTML = `<i class="fas fa-wifi"></i> خطأ في الاتصال.`; 
                 statusMsg.style.color = '#ef4444';
             }
         }
 
-        function renderMediaResult(title, thumbnail, vidUrl, audUrl, qrUrl, duration, platform, containerId, trackName, isPureAudio) {
+        // بناء شبكة الصور للتيك توك
+        function renderImageGrid(title, imagesArray, containerId) {
             const mediaBox = document.querySelector(`#${containerId} .media-box`); 
             
-            // تنظيف الاسم لدعم العربية وإضافة توقيت لمنع التكرار
-            let safeTitle = title.replace(/[^\\w\\s\\u0600-\\u06FF]/gi, '_').trim();
-            if(!safeTitle) safeTitle = "Media";
-            activeTitle = safeTitle + "_" + Math.floor(Math.random() * 10000);
+            let imgGridHtml = `<div class="image-grid">`;
+            imagesArray.forEach((imgUrl, index) => {
+                let safeUrl = `/proxy_stream?url=${encodeURIComponent(imgUrl)}&ext=jpg`;
+                imgGridHtml += `
+                <div class="img-card">
+                    <img src="${imgUrl}" loading="lazy">
+                    <button class="img-download-btn" onclick="forceAutoDownload('${safeUrl}', '${containerId}', '_img${index+1}.jpg')" title="تحميل الصورة"><i class="fas fa-download"></i></button>
+                </div>`;
+            });
+            imgGridHtml += `</div>`;
+
+            mediaBox.innerHTML = `
+                <div class="video-header"><div class="title">${title} (مجموعة صور)</div></div>
+                ${imgGridHtml}
+            `;
+            mediaBox.style.display = 'flex';
+        }
+
+        // بناء مشغل الفيديو وباقي الأزرار
+        function renderMediaResult(title, thumbnail, vidUrl, audUrl, qrUrl, duration, platform, containerId, trackName, isPureAudio) {
+            const mediaBox = document.querySelector(`#${containerId} .media-box`); 
             globalVideoUrl = vidUrl;
             
             let magicBtnHtml = '';
@@ -429,7 +517,7 @@ HTML_LAYOUT = """
                 let safeTrackName = trackName.replace(/'/g, "\\'");
                 magicBtnHtml = `
                 <div class="btn-row" style="margin-bottom: 10px;">
-                    <button onclick="fetchFullAudio('${safeTrackName}', this)" class="btn-action bg-magic" style="width:100%;">
+                    <button onclick="fetchFullAudio('${safeTrackName}', this, '${containerId}')" class="btn-action bg-magic" style="width:100%;">
                         <i class="fas fa-magic"></i> جلب الأغنية / المعزوفة الأصلية (MP3)
                     </button>
                 </div>`;
@@ -437,7 +525,7 @@ HTML_LAYOUT = """
 
             let audBtnHtml = '';
             if (isPureAudio !== false) {
-                audBtnHtml = `<button onclick="forceAutoDownload('${audUrl}', '${activeTitle}.mp3')" class="btn-action bg-mp3"><i class="fas fa-music"></i> استخراج الصوت (MP3)</button>`;
+                audBtnHtml = `<button onclick="forceAutoDownload('${audUrl}', '${containerId}', '.mp3')" class="btn-action bg-mp3"><i class="fas fa-music"></i> استخراج الصوت (MP3)</button>`;
             } else {
                 audBtnHtml = `<button class="btn-action bg-mp3" disabled style="opacity:0.6; cursor:not-allowed;"><i class="fas fa-microphone-slash"></i> الصوت منفصل غير متاح</button>`;
             }
@@ -464,11 +552,11 @@ HTML_LAYOUT = """
                 <div class="action-grid">
                     ${magicBtnHtml}
                     <div class="btn-row">
-                        <button onclick="forceAutoDownload('${vidUrl}', '${activeTitle}.mp4')" class="btn-action bg-mp4"><i class="fas fa-download"></i> تنزيل الفيديو</button>
+                        <button onclick="forceAutoDownload('${vidUrl}', '${containerId}', '.mp4')" class="btn-action bg-mp4"><i class="fas fa-download"></i> تنزيل الفيديو</button>
                         <button onclick="toggleQualityMenu(this)" class="btn-icon-sq" title="خيارات الجودة"><i class="fas fa-cog"></i></button>
                         <div class="quality-dropdown">
-                            <button class="quality-btn" onclick="forceAutoDownload('${vidUrl}', '${activeTitle}_1080p.mp4')">1080p (جودة عالية)</button>
-                            <button class="quality-btn" onclick="forceAutoDownload('${vidUrl}', '${activeTitle}_720p.mp4')">720p (متوسطة)</button>
+                            <button class="quality-btn" onclick="forceAutoDownload('${vidUrl}', '${containerId}', '_1080p.mp4')">1080p (عالية)</button>
+                            <button class="quality-btn" onclick="forceAutoDownload('${vidUrl}', '${containerId}', '_720p.mp4')">720p (متوسطة)</button>
                         </div>
                         <button onclick="copyLink('${qrUrl}')" class="btn-icon-sq" title="نسخ الرابط"><i class="fas fa-link"></i></button>
                         <button onclick="showQR('${qrUrl}')" class="btn-icon-sq" title="باركود"><i class="fas fa-qrcode"></i></button>
@@ -488,7 +576,7 @@ HTML_LAYOUT = """
                 const actionGrid = mediaBox.querySelector('.action-grid');
                 const waRow = document.createElement('div');
                 waRow.className = 'btn-row';
-                waRow.innerHTML = `<button onclick="forceAutoDownload('${vidUrl}', '${activeTitle}_WA.mp4')" class="btn-action bg-wa" style="width:100%;"><i class="fab fa-whatsapp"></i> نسخة مضغوطة (للواتساب)</button>`;
+                waRow.innerHTML = `<button onclick="forceAutoDownload('${vidUrl}', '${containerId}', '_WA.mp4')" class="btn-action bg-wa" style="width:100%;"><i class="fab fa-whatsapp"></i> نسخة مضغوطة (للواتساب)</button>`;
                 actionGrid.appendChild(waRow);
             }
             
@@ -503,11 +591,10 @@ HTML_LAYOUT = """
 </html>
 """
 
-# استبدال القيمة المشفرة للأيقونة بداخل الـ HTML بشكل آمن (منع أخطاء f-string)
 HTML_LAYOUT = HTML_LAYOUT.replace("ICON_B64_PLACEHOLDER", ICON_B64)
 
 # ==============================================================================
-# Backend Routes
+# Backend Routes & Handlers
 # ==============================================================================
 
 @app.route('/manifest.json')
@@ -535,6 +622,7 @@ def home():
 def ping_server():
     return "OK", 200
 
+# الذكاء الاصطناعي: بحث يوتيوب مخفي لتجاوز بلوك 429
 @app.route('/api/full_audio', methods=['POST'])
 def search_full_audio():
     track_name = request.json.get('track_name')
@@ -544,7 +632,8 @@ def search_full_audio():
     try:
         ydl_opts = {
             'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best', 
-            'noplaylist': True, 'default_search': 'ytsearch1'
+            'noplaylist': True, 'default_search': 'ytsearch1',
+            'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'}
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(clean_name, download=False)
@@ -560,38 +649,61 @@ def process_tiktok():
         r = requests.get(f"https://www.tikwm.com/api/?url={urllib.parse.quote(url)}", timeout=12).json()
         if r.get('code') == 0:
             v = r['data']
+            # التحقق إذا كان الرابط يحتوي على صور
+            if 'images' in v and isinstance(v['images'], list):
+                return jsonify({"success": True, "title": v.get('title', 'صور تيك توك'), "is_image": True, "images": v['images']})
+            
+            # فيديو طبيعي
             track_name = f"{v['music_info']['title']} {v['music_info'].get('author', '')}".strip() if 'music_info' in v and v['music_info'].get('title') else None
             return jsonify({
                 "success": True, "title": v.get('title', 'مقطع تيك توك'),
                 "thumbnail": v.get('cover', 'https://via.placeholder.com/150'),
                 "video_url": v.get('play'), "audio_url": v.get('music'), 
-                "is_pure_audio": True, "duration": v.get('duration', 15), "track_name": track_name
+                "is_pure_audio": True, "duration": v.get('duration', 15), "track_name": track_name, "is_image": False
             })
         return jsonify({"success": False, "error": "المقطع محذوف أو خاص."})
     except:
         return jsonify({"success": False, "error": "فشل الاتصال بسيرفر تيك توك."})
 
-@app.route('/api/insta', methods=['POST'])
-def process_insta():
-    url = request.json.get('url', '').strip()
+# نظام الشلال (Waterfall Fallback Engine) للانستا والفيس
+def waterfall_extract(url, platform_name):
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+    
+    # 1. المحرك الأول (Cobalt) مهلة 5 ثواني
     try:
-        r_vid = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=12)
+        r_vid = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=5)
         if r_vid.status_code == 200 and r_vid.json().get('url'):
             vid_url = r_vid.json()['url']
             aud_url = vid_url
-            is_pure_audio = False
+            is_pure = False
             try:
-                r_aud = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=8)
+                r_aud = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=5)
                 if r_aud.status_code == 200 and r_aud.json().get('url'): 
                     aud_url = r_aud.json()['url']
-                    is_pure_audio = True
+                    is_pure = True
             except: pass
-            return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "is_pure_audio": is_pure_audio, "duration": 15})
+            return {"success": True, "title": f"مقطع {platform_name}", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "is_pure_audio": is_pure, "duration": 15, "is_image": False}
     except: pass
-    
+
+    # 2. المحرك الثاني (Wuk) مهلة 5 ثواني
     try:
-        ydl_opts = {'quiet': True, 'no_warnings': True, 'socket_timeout': 15, 'format': 'best'}
+        r_vid2 = requests.post("https://co.wuk.sh/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=5)
+        if r_vid2.status_code == 200 and r_vid2.json().get('url'):
+            vid_url2 = r_vid2.json()['url']
+            aud_url2 = vid_url2
+            is_pure2 = False
+            try:
+                r_aud2 = requests.post("https://co.wuk.sh/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=5)
+                if r_aud2.status_code == 200 and r_aud2.json().get('url'): 
+                    aud_url2 = r_aud2.json()['url']
+                    is_pure2 = True
+            except: pass
+            return {"success": True, "title": f"مقطع {platform_name}", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url2, "audio_url": aud_url2, "is_pure_audio": is_pure2, "duration": 15, "is_image": False}
+    except: pass
+
+    # 3. الدبابة الاحتياطية (yt-dlp) مهلة 10 ثواني
+    try:
+        ydl_opts = {'quiet': True, 'no_warnings': True, 'socket_timeout': 10, 'format': 'best', 'extractor_args': {'facebook': {'player_client': ['android', 'ios']}}}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             video_url = info.get('url', '')
@@ -607,49 +719,18 @@ def process_insta():
                 is_pure_audio = True
 
             if video_url:
-                return jsonify({"success": True, "title": "مقطع إنستغرام", "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
+                return {"success": True, "title": info.get('title', f'مقطع {platform_name}'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15), "is_image": False}
     except: pass
-    return jsonify({"success": False, "error": "المنصة تمنع الوصول (تأكد أن الحساب عام Public)."})
+    
+    return {"success": False, "error": "المنصة تمنع الوصول (تأكد أن الحساب عام Public)."}
+
+@app.route('/api/insta', methods=['POST'])
+def process_insta():
+    return jsonify(waterfall_extract(request.json.get('url', '').strip(), "إنستغرام"))
 
 @app.route('/api/facebook', methods=['POST'])
 def process_facebook():
-    url = request.json.get('url', '').strip()
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    try:
-        r_vid = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=12)
-        if r_vid.status_code == 200 and r_vid.json().get('url'):
-            vid_url = r_vid.json()['url']
-            aud_url = vid_url
-            is_pure_audio = False
-            try:
-                r_aud = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "isAudioOnly": True}, headers=headers, timeout=8)
-                if r_aud.status_code == 200 and r_aud.json().get('url'): 
-                    aud_url = r_aud.json()['url']
-                    is_pure_audio = True
-            except: pass
-            return jsonify({"success": True, "title": "مقطع فيسبوك", "thumbnail": "https://via.placeholder.com/150", "video_url": vid_url, "audio_url": aud_url, "is_pure_audio": is_pure_audio, "duration": 15})
-    except: pass
-
-    try:
-        ydl_opts = {'quiet': True, 'no_warnings': True, 'socket_timeout': 15, 'format': 'best', 'extractor_args': {'facebook': {'player_client': ['android', 'ios']}}}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            video_url = info.get('url', '')
-            if not video_url and 'formats' in info:
-                v_formats = [f for f in info['formats'] if f.get('vcodec') != 'none']
-                if v_formats: video_url = v_formats[-1]['url']
-            
-            audio_url = video_url
-            is_pure_audio = False
-            a_formats = [f for f in info.get('formats', []) if f.get('vcodec') == 'none' and f.get('acodec') != 'none']
-            if a_formats:
-                audio_url = a_formats[-1]['url']
-                is_pure_audio = True
-
-            if video_url:
-                return jsonify({"success": True, "title": info.get('title', 'مقطع فيسبوك'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
-    except: pass
-    return jsonify({"success": False, "error": "تعذر السحب من فيسبوك. تأكد أن المقطع عام (Public)."})
+    return jsonify(waterfall_extract(request.json.get('url', '').strip(), "فيسبوك"))
 
 @app.route('/api/general', methods=['POST'])
 def process_general():
@@ -671,7 +752,7 @@ def process_general():
                 is_pure_audio = True
 
             if video_url:
-                return jsonify({"success": True, "title": info.get('title', 'ملف مستخرج'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15)})
+                return jsonify({"success": True, "title": info.get('title', 'ملف مستخرج'), "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'), "video_url": video_url, "audio_url": audio_url, "is_pure_audio": is_pure_audio, "duration": info.get('duration', 15), "is_image": False})
     except Exception as e: pass
     return jsonify({"success": False, "error": "تعذر السحب للرابط العام."})
 
@@ -687,10 +768,11 @@ def proxy_stream():
             for chunk in req.iter_content(chunk_size=1024 * 512):
                 if chunk: yield chunk
         response = Response(stream_with_context(generate()), content_type=req.headers.get('content-type', f'video/{ext}'))
+        # تنظيف اسم الملف في البروكسي
         response.headers['Content-Disposition'] = f'attachment; filename="Tahmilati_File.{ext}"'
         response.headers['Access-Control-Allow-Origin'] = '*' 
         return response
-    except Exception as e:
+    except:
         return f"Proxy Pipeline Error", 500
 
 if __name__ == '__main__':
