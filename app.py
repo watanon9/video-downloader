@@ -1,13 +1,14 @@
 import os
 import requests
 import urllib.parse
+import re
 from flask import Flask, render_template_string, request, jsonify, Response, stream_with_context
 import yt_dlp
 
 app = Flask(__name__)
 
 # ==========================================
-# واجهتك الأصلية القديمة الفخمة 100% بدون أي تغيير
+# واجهة المستخدم الأصلية 100% بدون تغيير
 # ==========================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
@@ -64,6 +65,7 @@ HTML_LAYOUT = """
         .menu-list { list-style: none; padding: 10px 0; margin: 0; flex: 1; overflow-y: auto; }
         .menu-item { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 12px; transition: 0.2s; color: var(--text-main); }
         .menu-item:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
+        [data-theme="dark"] .menu-item:hover { background: rgba(255,255,255,0.05); }
         
         .main-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; display: flex; flex-direction: column; gap: 15px; }
         .main-content::-webkit-scrollbar { width: 5px; }
@@ -87,6 +89,7 @@ HTML_LAYOUT = """
         [data-theme="dark"] .input-row { background: rgba(255,255,255,0.03); }
         input[type="text"] { flex: 1; padding: 16px 5px; background: transparent; border: none; color: var(--text-main); font-size: 14px; outline: none; font-family: 'Tajawal'; }
         .action-icon { color: var(--text-muted); cursor: pointer; padding: 10px; transition: 0.2s; }
+        .action-icon:hover { color: var(--primary); }
         
         .btn-main { padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Tajawal'; box-shadow: var(--neon-shadow); transition: 0.3s; }
 
@@ -151,7 +154,7 @@ HTML_LAYOUT = """
                 <ul class="welcome-steps" dir="rtl">
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 1. انقر على أيقونة القائمة (☰) في الزاوية العلوية.</li>
                     <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 2. حدد المنصة المراد التنزيل منها.</li>
-                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط لإنشاء ملفات التنزيل المباشرة.</li>
+                    <li><i class="fas fa-check-circle" style="color:var(--primary)"></i> 3. أدخل الرابط أو اليوزر لإنشاء ملفات التنزيل المباشرة.</li>
                 </ul>
                 <div class="live-counter"><i class="fas fa-chart-line"></i> تم معالجة <span id="countNum">1,425,890</span> طلب بنجاح</div>
                 <a href="https://www.instagram.com/_otnn?igsh=d3hybTN2M2Zlanl0" target="_blank" class="creator-btn"><i class="fab fa-instagram"></i> المصمم: @_otnn</a>
@@ -161,7 +164,7 @@ HTML_LAYOUT = """
                 <div class="input-card">
                     <div class="card-title"><i class="fab fa-instagram" style="color: #f56040;"></i> تنزيل من إنستغرام</div>
                     <div class="input-row">
-                        <input type="text" id="input-insta" placeholder="أدخل رابط البوست أو يوزر الستوري...">
+                        <input type="text" id="input-insta" placeholder="أدخل رابط البوست، أو يوزر الحساب للستوري...">
                         <i class="fas fa-times action-icon" onclick="clearInput('input-insta')"></i>
                         <i class="fas fa-paste action-icon" onclick="pasteInput('input-insta')"></i>
                     </div>
@@ -386,13 +389,9 @@ def process_api():
     if not url:
         return jsonify({"success": False, "error": "الرابط أو اليوزر فارغ!"})
 
-    # 🔥 هنا الحل العبقري: فحص إذا كان مدخل خانة الإنستا مجرد يوزر وليس رابط حقيقي
-    if platform == 'insta' and not url.startswith('http'):
-        username = url.replace('@', '').strip()
-        # نقوم بتحويله تلقائياً لـ رابط ستوري رسمي بالخلفية لكي لا يصطدم بـ yt-dlp
-        url = f"https://www.instagram.com/stories/{username}/"
-
-    # [1] قطاع تيك توك المعزول والمستقر
+    # ===============================================
+    # [1] قطاع تيك توك: يعمل بـ API مستقل وموثوق
+    # ===============================================
     if platform == 'tiktok' or 'tiktok.com' in url:
         try:
             r = requests.get(f"https://www.tikwm.com/api/?url={urllib.parse.quote(url)}", timeout=10).json()
@@ -407,10 +406,59 @@ def process_api():
         except Exception as e:
             return jsonify({"success": False, "error": f"فشل اتصال السيرفر: {str(e)}"})
 
-    # [2] قطاع إنستغرام وفيسبوك (الاتصال الفعلي بالخوادم الاحترافية لمنع الحظر)
+    # ===============================================
+    # [2] قطاع إنستغرام: (الحل الجذري لتجاوز طلب تسجيل الدخول)
+    # ===============================================
+    if platform == 'insta':
+        is_story_username = False
+        
+        # 🔥 هنا السحر: إذا المستخدم كتب يوزر، نحوله لرابط ونشغل الـ Scraper
+        if not url.startswith('http'):
+            username = url.replace('@', '').strip()
+            url = f"https://www.instagram.com/stories/{username}/"
+            is_story_username = True
+            
+        # محرك Scraper مخصص لإنستغرام (يخدع الانستا عن طريق موقع SaveIG لمنع بلوك الـ Cookies)
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://saveig.app',
+                'Referer': 'https://saveig.app/en/instagram-story-downloader'
+            }
+            payload = {'q': url, 't': 'media', 'lang': 'en'}
+            r_saveig = requests.post('https://saveig.app/api/ajaxSearch', data=payload, headers=headers, timeout=12)
+            
+            if r_saveig.status_code == 200:
+                html_data = r_saveig.json().get('data', '')
+                links = re.findall(r'href="([^"]+)"', html_data)
+                # نسحب روابط الـ MP4 أو الصور المباشرة اللي بيها تحميل
+                media_links = [l for l in links if 'dl=1' in l or '.mp4' in l or '.jpg' in l]
+                
+                if media_links:
+                    return jsonify({
+                        "success": True, 
+                        "title": f"ستوري حساب {username}" if is_story_username else "Instagram Media",
+                        "thumbnail": "https://via.placeholder.com/150",
+                        "video_url": media_links[0], 
+                        "audio_url": media_links[0], 
+                        "duration": 15
+                    })
+        except:
+            pass # إذا فشل ننتقل للمحركات الرديفة فقط للبوستات
+            
+        # ⚠️ إذا كان المدخل يوزر (ستوري) وفشل الـ Scraper، نقطع الطريق هنا ولا نذهب لـ yt-dlp لأنه سيطلب تسجيل دخول!
+        if is_story_username:
+            return jsonify({
+                "success": False, 
+                "error": "انستغرام يمنع سحب الستوريات لهذا الحساب حالياً (ربما يكون خاص Private). استخدم الرابط المباشر للريلز."
+            })
+
+    # ===============================================
+    # [3] قطاع فيسبوك والمقاطع العامة (Cobalt API كطبقة حماية ثانية)
+    # ===============================================
     if platform in ['insta', 'facebook']:
         try:
-            # نحاول أولاً باستخدام الـ API المباشر لأنه يفك قيود تسجيل الدخول بشكل فوري ومستقر
             headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
             r = requests.post("https://api.cobalt.tools/api/json", json={"url": url, "vQuality": "720"}, headers=headers, timeout=8)
             if r.status_code == 200:
@@ -422,9 +470,11 @@ def process_api():
                         "video_url": res['url'], "audio_url": res['url'], "duration": 15
                     })
         except:
-            pass # إذا واجه ضغطاً، يحول فوراً إلى المحرك الرديف الموضح بالأسفل
+            pass 
 
-    # [3] قطاع الـ المحرك الاحتياطي الفعلي لكل المنصات (yt-dlp)
+    # ===============================================
+    # [4] المحرك الاحتياطي الأخير (yt-dlp)
+    # ===============================================
     try:
         ydl_opts = {
             'quiet': True, 'no_warnings': True, 'socket_timeout': 10,
@@ -443,10 +493,12 @@ def process_api():
                     "thumbnail": info.get('thumbnail', 'https://via.placeholder.com/150'),
                     "video_url": video_url, "audio_url": video_url, "duration": info.get('duration', 15)
                 })
-            return jsonify({"success": False, "error": "تعذر العثور على البث المباشر للفيديو."})
+            return jsonify({"success": False, "error": "تعذر العثور على رابط مباشر داخل هذا المقطع."})
     except Exception as e:
-        return jsonify({"success": False, "error": f"استجابة المنصة الحالية: {str(e)}"})
-
+        error_msg = str(e)
+        if "log in" in error_msg.lower() or "cookies" in error_msg.lower():
+            return jsonify({"success": False, "error": "هذا المقطع محمي ويطلب تسجيل دخول من قبل المنصة الأصلية."})
+        return jsonify({"success": False, "error": f"تم رفض الرابط من المصدر: {error_msg}"})
 
 # ==========================================
 # دالة البروكسي: لكسر الـ CORS وتمرير البث المباشر بدون انهيار السيرفر
